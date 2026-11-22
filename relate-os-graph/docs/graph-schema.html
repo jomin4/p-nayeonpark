@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph Schema</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --lane-ink: #888780;
+    --card: #FFFFFF; --chip: #FFFFFF;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --pipe: #0F6E56; --pipe-bg: #E1F5EE; --pipe-ink: #04342C;
+    --learn: #993C1D; --learn-bg: #FAECE7; --learn-ink: #4A1B0C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --lane-ink: #888780;
+      --card: #262624; --chip: #262624;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --pipe: #5DCAA5; --pipe-bg: #04342C; --pipe-ink: #E1F5EE;
+      --learn: #F0997B; --learn-bg: #4A1B0C; --learn-ink: #FAECE7;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink); padding: 32px 16px;
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  }
+  main { max-width: 1200px; margin: 0 auto; display: grid; gap: 28px; }
+  svg { width: 100%; height: auto; display: block; }
+  .mono { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  hr { border: 0; border-top: 1px dashed var(--lane-ink); opacity: .5; margin: 0; }
+</style>
+</head>
+<body>
+<main>
+  <svg id="pipeline" viewBox="0 0 1200 200" role="img" aria-label="웹 조사, 시각화 자료, 설명 글, 그래프 저장으로 이어지는 학습 콘텐츠 파이프라인"></svg>
+  <hr>
+  <svg id="schema" viewBox="0 0 1200 720" role="img" aria-label="Topic, Concept, Session, Question, Example, Post, Visual, Source 노드와 관계를 보여주는 그래프 스키마"></svg>
+</main>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+const txt = (s, attrs, parent) => { const t = el('text', attrs, parent); t.textContent = s; return t; };
+
+const ICONS = {
+  topic:    g => { el('path', { d: 'M3 7h6l2 2h10v10H3z' }, g); },
+  concept:  g => { el('circle', { cx: 12, cy: 10, r: 6 }, g); el('path', { d: 'M9.5 17h5M10.5 20.5h3' }, g); },
+  session:  g => { el('circle', { cx: 12, cy: 12, r: 9 }, g); el('path', { d: 'M12 7v5l3.5 2' }, g); },
+  question: g => { el('circle', { cx: 12, cy: 12, r: 9 }, g); el('path', { d: 'M9.5 9.5a2.5 2.5 0 1 1 3.6 2.3c-.7.4-1.1 1-1.1 1.7v.5M12 17.2v.1' }, g); },
+  example:  g => { el('path', { d: 'M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 6l-3 12' }, g); },
+  post:     g => { el('path', { d: 'M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6' }, g); },
+  visual:   g => { el('rect', { x: 3, y: 5, width: 18, height: 14, rx: 2 }, g); el('circle', { cx: 8.5, cy: 10, r: 1.6 }, g); el('path', { d: 'M21 16l-5-5-9 8' }, g); },
+  source:   g => { el('circle', { cx: 12, cy: 12, r: 9 }, g); el('ellipse', { cx: 12, cy: 12, rx: 4, ry: 9 }, g); el('path', { d: 'M3 12h18' }, g); },
+  db:       g => { el('ellipse', { cx: 12, cy: 6, rx: 8, ry: 3 }, g); el('path', { d: 'M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3' }, g); },
+};
+const icon = (name, x, y, size, color, parent) => {
+  const g = el('g', { class: 'ico', stroke: color, transform: `translate(${x} ${y}) scale(${size / 24})` }, parent);
+  ICONS[name](g);
+  return g;
+};
+const marker = (svg, id, color) => {
+  const defs = svg.querySelector('defs') || el('defs', {}, svg);
+  const m = el('marker', { id, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
+  el('path', { d: 'M1 1L9 5L1 9z', fill: color }, m);
+};
+const chip = (s, x, y, color, parent) => {
+  const w = s.length * 7.4 + 18;
+  el('rect', { x: x - w / 2, y: y - 11, width: w, height: 22, rx: 11, fill: 'var(--chip)', stroke: color, 'stroke-opacity': .55 }, parent);
+  txt(s, { x, y: y + 4, 'text-anchor': 'middle', class: 'mono', 'font-size': 11.5, 'font-weight': 700, fill: color }, parent);
+};
+
+/* ---------- pipeline ---------- */
+(() => {
+  const svg = document.getElementById('pipeline');
+  marker(svg, 'pa', 'var(--muted)');
+  const steps = [
+    { icon: 'source', name: '웹 조사',     node: ':Source',  c: 'pipe' },
+    { icon: 'visual', name: '시각화 자료', node: ':Visual',  c: 'pipe' },
+    { icon: 'post',   name: '설명 글',     node: ':Post',    c: 'pipe' },
+    { icon: 'db',     name: '그래프 저장', node: ':Concept', c: 'core' },
+  ];
+  const xs = [180, 460, 740, 1020], cy = 78, r = 44;
+  steps.forEach((s, i) => {
+    const x = xs[i];
+    el('circle', { cx: x, cy, r, fill: `var(--${s.c}-bg)`, stroke: `var(--${s.c})`, 'stroke-width': 1.6 }, svg);
+    icon(s.icon, x - 20, cy - 20, 40, `var(--${s.c})`, svg);
+    txt(s.name, { x, y: cy + r + 30, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: 'var(--ink)' }, svg);
+    txt(s.node, { x, y: cy + r + 52, 'text-anchor': 'middle', class: 'mono', 'font-size': 13, fill: `var(--${s.c})`, 'font-weight': 700 }, svg);
+    if (i < steps.length - 1) {
+      el('line', { x1: x + r + 14, y1: cy, x2: xs[i + 1] - r - 14, y2: cy, stroke: 'var(--muted)', 'stroke-width': 1.8, 'stroke-dasharray': '2 6', 'stroke-linecap': 'round', 'marker-end': 'url(#pa)' }, svg);
+    }
+  });
+})();
+
+/* ---------- schema ---------- */
+(() => {
+  const svg = document.getElementById('schema');
+  const W = 220, H = 68;
+  for (const c of ['core', 'pipe', 'learn']) marker(svg, `m-${c}`, `var(--${c})`);
+
+  const lanes = [
+    { x: 70,  y: 130, w: 260, h: 560, label: '학습 기록' },
+    { x: 470, y: 60,  w: 260, h: 630, label: '지식 코어' },
+    { x: 870, y: 130, w: 260, h: 560, label: '콘텐츠 파이프라인' },
+  ];
+  for (const l of lanes) {
+    el('rect', { x: l.x, y: l.y, width: l.w, height: l.h, rx: 20, fill: 'var(--lane)' }, svg);
+    txt(l.label, { x: l.x + l.w / 2, y: l.y + l.h - 18, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 700, fill: 'var(--lane-ink)' }, svg);
+  }
+
+  const N = {
+    topic:    { x: 600,  y: 110, c: 'core',  icon: 'topic',    label: 'Topic',    sub: '예: 메모리 관리' },
+    cA:       { x: 600,  y: 330, c: 'core',  icon: 'concept',  label: 'Concept',  sub: '예: 가상 메모리' },
+    cB:       { x: 600,  y: 560, c: 'core',  icon: 'concept',  label: 'Concept',  sub: '예: 페이지 교체' },
+    session:  { x: 200,  y: 210, c: 'learn', icon: 'session',  label: 'Session',  sub: 'date · summary' },
+    question: { x: 200,  y: 410, c: 'learn', icon: 'question', label: 'Question', sub: 'text · answered' },
+    example:  { x: 200,  y: 600, c: 'learn', icon: 'example',  label: 'Example',  sub: 'code · analogy' },
+    post:     { x: 1000, y: 210, c: 'pipe',  icon: 'post',     label: 'Post',     sub: 'title · slug · status' },
+    visual:   { x: 1000, y: 410, c: 'pipe',  icon: 'visual',   label: 'Visual',   sub: 'type · path · caption' },
+    source:   { x: 1000, y: 600, c: 'pipe',  icon: 'source',   label: 'Source',   sub: 'url · title · kind' },
+  };
+
+  const clip = (n, tx, ty, gap = 6) => {
+    const dx = tx - n.x, dy = ty - n.y;
+    const t = Math.min((W / 2 + gap) / Math.abs(dx || 1e-9), (H / 2 + gap) / Math.abs(dy || 1e-9));
+    return [n.x + dx * t, n.y + dy * t];
+  };
+
+  const edges = el('g', {}, svg);
+  const labels = el('g', {}, svg);
+  const stroke = c => ({ stroke: `var(--${c})`, 'stroke-width': 1.8, fill: 'none' });
+
+  const straight = (a, b, name, c, opt = {}) => {
+    const A = N[a], B = N[b];
+    const [x1, y1] = clip(A, B.x, B.y), [x2, y2] = clip(B, A.x, A.y);
+    el('line', { x1, y1, x2, y2, ...stroke(c), 'marker-end': `url(#m-${c})` }, edges);
+    chip(name, (x1 + x2) / 2 + (opt.dx || 0), (y1 + y2) / 2 + (opt.dy || 0), `var(--${c})`, labels);
+  };
+
+  straight('topic', 'cA', 'HAS_CONCEPT', 'core');
+  // concept -> concept (two parallel lanes)
+  el('line', { x1: 565, y1: 330 + H / 2 + 6, x2: 565, y2: 560 - H / 2 - 6, ...stroke('core'), 'marker-end': 'url(#m-core)' }, edges);
+  chip('PREREQUISITE_OF', 565, 418, 'var(--core)', labels);
+  el('line', { x1: 635, y1: 330 + H / 2 + 6, x2: 635, y2: 560 - H / 2 - 6, ...stroke('core'), 'stroke-dasharray': '6 6' }, edges);
+  chip('CONFUSED_WITH', 635, 474, 'var(--core)', labels);
+
+  straight('session',  'cA', 'COVERED',     'learn');
+  straight('question', 'cA', 'ABOUT',       'learn');
+  straight('example',  'cB', 'ILLUSTRATES', 'learn');
+
+  straight('post',   'cA', 'EXPLAINS',  'pipe');
+  straight('visual', 'cA', 'DEPICTS',   'pipe');
+  straight('source', 'cB', 'DESCRIBES', 'pipe');
+  straight('post',   'visual', 'EMBEDS',       'pipe');
+  straight('visual', 'source', 'DERIVED_FROM', 'pipe');
+
+  // session -> post (over the top)
+  el('path', { d: `M200 ${210 - H / 2 - 6} V36 H1000 V${210 - H / 2 - 6}`, ...stroke('learn'), 'stroke-dasharray': '1 0', 'marker-end': 'url(#m-learn)' }, edges);
+  chip('PRODUCED', 800, 36, 'var(--learn)', labels);
+  // post -> source (right side)
+  el('path', { d: `M${1000 + W / 2 + 6} 210 H1166 V600 H${1000 + W / 2 + 6}`, ...stroke('pipe'), 'marker-end': 'url(#m-pipe)' }, edges);
+  chip('CITES', 1166, 505, 'var(--pipe)', labels);
+
+  // nodes
+  for (const n of Object.values(N)) {
+    const g = el('g', {}, svg);
+    const x = n.x - W / 2, y = n.y - H / 2;
+    el('rect', { x, y, width: W, height: H, rx: 14, fill: 'var(--card)', stroke: `var(--${n.c})`, 'stroke-width': 1.6 }, g);
+    el('circle', { cx: x + 34, cy: n.y, r: 20, fill: `var(--${n.c}-bg)` }, g);
+    icon(n.icon, x + 34 - 12, n.y - 12, 24, `var(--${n.c})`, g);
+    txt(n.label, { x: x + 64, y: n.y - 4, 'font-size': 17, 'font-weight': 700, fill: `var(--${n.c}-ink)` }, g);
+    txt(n.sub, { x: x + 64, y: n.y + 17, 'font-size': 12, class: /^[a-z]/.test(n.sub) ? 'mono' : '', fill: 'var(--muted)' }, g);
+  }
+})();
+</script>
+</body>
+</html>

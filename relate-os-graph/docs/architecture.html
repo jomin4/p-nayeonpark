@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Architecture</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --line: #9A988F;
+    --card: #FFFFFF; --card-stroke: #D9D6CC;
+    --term: #1F1E1D; --term-chip: #2E2D2A; --term-chip-stroke: #4A4844; --term-ink: #F1EFE8;
+    --spark: #D97757;
+    --rel-bg: #E1F5EE; --rel-stroke: #1D9E75; --rel-ink: #085041; --rel-row: #FFFFFF;
+    --db-bg: #FAEEDA; --db-top: #FAC775; --db-stroke: #BA7517; --db-ink: #633806;
+    --chip-bg: #FFFFFF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --line: #888780;
+      --card: #262624; --card-stroke: #444441;
+      --term: #0F0F0E; --term-chip: #262624; --term-chip-stroke: #5F5E5A;
+      --rel-bg: #04342C; --rel-stroke: #5DCAA5; --rel-ink: #E1F5EE; --rel-row: #085041;
+      --db-bg: #412402; --db-top: #633806; --db-stroke: #EF9F27; --db-ink: #FAEEDA;
+      --chip-bg: #262624;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: var(--bg); color: var(--ink); padding: 24px 16px;
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  }
+  figure { margin: 0; width: 100%; max-width: 1200px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 16px; font-weight: 600; }
+  .m { fill: var(--muted); font-size: 13px; font-family: "JetBrains Mono", Consolas, monospace; }
+  .ln { stroke: var(--line); stroke-width: 1.6; fill: none; }
+  .chip rect { fill: var(--chip-bg); stroke: var(--card-stroke); }
+  .chip text { fill: var(--muted); font-size: 12px; font-family: "JetBrains Mono", Consolas, monospace; font-weight: 600; }
+  .card { fill: var(--card); stroke: var(--card-stroke); stroke-width: 1.2; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1200 610" role="img" aria-labelledby="ttl">
+  <title id="ttl">학습자, Claude Code, relate serve, os-graph.rl, 웹 조사, docs, GitHub로 이어지는 시스템 아키텍처</title>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M1 1L9 5L1 9z" fill="var(--line)"/>
+    </marker>
+  </defs>
+
+  <!-- learner -->
+  <g>
+    <circle cx="100" cy="258" r="24" fill="var(--card)" stroke="var(--ink)" stroke-width="2.4"/>
+    <path d="M56 350 Q56 296 100 296 Q144 296 144 350 Z" fill="var(--card)" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>
+    <text class="t" x="100" y="384" text-anchor="middle">학습자</text>
+  </g>
+  <line class="ln" x1="152" y1="300" x2="212" y2="300" marker-start="url(#ah)" marker-end="url(#ah)"/>
+
+  <!-- web research -->
+  <g>
+    <circle cx="370" cy="78" r="34" fill="var(--card)" stroke="var(--ink)" stroke-width="2.2"/>
+    <ellipse cx="370" cy="78" rx="14" ry="34" fill="none" stroke="var(--ink)" stroke-width="1.8"/>
+    <line x1="336" y1="78" x2="404" y2="78" stroke="var(--ink)" stroke-width="1.8"/>
+    <path d="M342 60 H398 M342 96 H398" stroke="var(--ink)" stroke-width="1.4" fill="none"/>
+    <text class="t" x="420" y="84">웹 조사</text>
+  </g>
+  <line class="ln" x1="370" y1="118" x2="370" y2="192" marker-start="url(#ah)" marker-end="url(#ah)"/>
+
+  <!-- claude code terminal -->
+  <g>
+    <rect x="220" y="200" width="300" height="200" rx="16" fill="var(--term)"/>
+    <circle cx="242" cy="222" r="5.5" fill="#FF5F57"/>
+    <circle cx="260" cy="222" r="5.5" fill="#FEBC2E"/>
+    <circle cx="278" cy="222" r="5.5" fill="#28C840"/>
+    <g stroke="var(--spark)" stroke-width="5.5" stroke-linecap="round" transform="translate(262 272)">
+      <line x1="0" y1="-19" x2="0" y2="19"/>
+      <line x1="-19" y1="0" x2="19" y2="0"/>
+      <line x1="-13.4" y1="-13.4" x2="13.4" y2="13.4"/>
+      <line x1="-13.4" y1="13.4" x2="13.4" y2="-13.4"/>
+    </g>
+    <text x="296" y="281" fill="var(--term-ink)" font-size="23" font-weight="700">Claude Code</text>
+    <g font-family="JetBrains Mono, Consolas, monospace" font-size="12" font-weight="600" fill="var(--term-ink)" text-anchor="middle">
+      <rect x="236" y="326" width="84" height="40" rx="8" fill="var(--term-chip)" stroke="var(--term-chip-stroke)"/>
+      <text x="278" y="350">CLAUDE.md</text>
+      <rect x="328" y="326" width="84" height="40" rx="8" fill="var(--term-chip)" stroke="var(--term-chip-stroke)"/>
+      <text x="370" y="350">/commands</text>
+      <rect x="420" y="326" width="84" height="40" rx="8" fill="var(--term-chip)" stroke="var(--term-chip-stroke)"/>
+      <text x="462" y="350">hooks</text>
+    </g>
+  </g>
+
+  <!-- claude -> relate -->
+  <line class="ln" x1="528" y1="300" x2="630" y2="300" marker-end="url(#ah)"/>
+  <g class="chip"><rect x="552" y="270" width="54" height="22" rx="11"/><text x="579" y="285" text-anchor="middle">MCP</text></g>
+
+  <!-- relate serve -->
+  <g>
+    <rect x="640" y="200" width="260" height="200" rx="16" fill="var(--rel-bg)" stroke="var(--rel-stroke)" stroke-width="1.4"/>
+    <g stroke="var(--rel-ink)" stroke-width="2" fill="var(--rel-bg)">
+      <line x1="668" y1="250" x2="688" y2="232"/>
+      <line x1="668" y1="250" x2="690" y2="260"/>
+      <line x1="688" y1="232" x2="690" y2="260"/>
+      <circle cx="668" cy="250" r="6"/>
+      <circle cx="688" cy="232" r="6"/>
+      <circle cx="690" cy="260" r="6"/>
+    </g>
+    <text x="708" y="253" fill="var(--rel-ink)" font-size="21" font-weight="700">relate serve</text>
+    <g font-family="JetBrains Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="var(--rel-ink)">
+      <rect x="660" y="280" width="220" height="30" rx="7" fill="var(--rel-row)" stroke="var(--rel-stroke)" stroke-opacity=".5"/>
+      <text x="676" y="300">MCP server</text>
+      <rect x="660" y="318" width="220" height="30" rx="7" fill="var(--rel-row)" stroke="var(--rel-stroke)" stroke-opacity=".5"/>
+      <text x="676" y="338">Cypher engine</text>
+      <rect x="660" y="356" width="220" height="30" rx="7" fill="var(--rel-row)" stroke="var(--rel-stroke)" stroke-opacity=".5"/>
+      <text x="676" y="376">in-memory graph · index</text>
+    </g>
+  </g>
+
+  <!-- relate -> db -->
+  <line class="ln" x1="908" y1="300" x2="1004" y2="300" marker-end="url(#ah)"/>
+  <g class="chip"><rect x="928" y="270" width="54" height="22" rx="11"/><text x="955" y="285" text-anchor="middle">WAL</text></g>
+
+  <!-- db cylinder -->
+  <g stroke="var(--db-stroke)" stroke-width="1.8">
+    <path d="M1015 232 V364 A70 17 0 0 0 1155 364 V232" fill="var(--db-bg)"/>
+    <path d="M1015 276 A70 17 0 0 0 1155 276" fill="none" stroke-opacity=".7"/>
+    <path d="M1015 320 A70 17 0 0 0 1155 320" fill="none" stroke-opacity=".7"/>
+    <ellipse cx="1085" cy="232" rx="70" ry="17" fill="var(--db-top)"/>
+  </g>
+  <text x="1085" y="414" text-anchor="middle" fill="var(--db-ink)" font-size="15" font-weight="700" font-family="JetBrains Mono, Consolas, monospace">os-graph.rl</text>
+
+  <!-- outputs -->
+  <path class="ln" d="M370 400 V438 H290 V474" marker-end="url(#ah)"/>
+  <path class="ln" d="M370 438 H450 V474" marker-end="url(#ah)"/>
+  <rect x="208" y="464" width="324" height="124" rx="16" fill="none" stroke="var(--line)" stroke-width="1.2" stroke-dasharray="5 5"/>
+  <text class="m" x="224" y="604" fill="var(--muted)">docs/</text>
+
+  <g>
+    <rect class="card" x="220" y="480" width="140" height="96" rx="12"/>
+    <g class="ico" transform="translate(272 494)">
+      <rect x="0" y="0" width="36" height="30" rx="4"/>
+      <line x1="9" y1="22" x2="9" y2="15"/>
+      <line x1="18" y1="22" x2="18" y2="8"/>
+      <line x1="27" y1="22" x2="27" y2="12"/>
+    </g>
+    <text class="t" x="290" y="556" text-anchor="middle" font-size="15">시각화 자료</text>
+  </g>
+  <g>
+    <rect class="card" x="380" y="480" width="140" height="96" rx="12"/>
+    <g class="ico" transform="translate(436 492)">
+      <path d="M0 0 H20 L28 8 V34 H0 Z"/>
+      <path d="M20 0 V8 H28"/>
+      <line x1="6" y1="17" x2="22" y2="17"/>
+      <line x1="6" y1="24" x2="22" y2="24"/>
+    </g>
+    <text class="t" x="450" y="556" text-anchor="middle" font-size="15">기술 블로그</text>
+  </g>
+
+  <line class="ln" x1="532" y1="526" x2="630" y2="526" marker-end="url(#ah)"/>
+  <g class="chip"><rect x="550" y="496" width="62" height="22" rx="11"/><text x="581" y="511" text-anchor="middle">push</text></g>
+
+  <!-- github repo -->
+  <g>
+    <rect class="card" x="640" y="480" width="260" height="96" rx="12"/>
+    <g class="ico" transform="translate(664 506)">
+      <circle cx="6" cy="6" r="5"/>
+      <circle cx="6" cy="38" r="5"/>
+      <circle cx="30" cy="16" r="5"/>
+      <line x1="6" y1="11" x2="6" y2="33"/>
+      <path d="M30 21 C30 30 6 26 6 33"/>
+    </g>
+    <text class="t" x="712" y="522">GitHub repo</text>
+    <text class="m" x="712" y="546">p-nayeonpark</text>
+  </g>
+</svg>
+</figure>
+</body>
+</html>
