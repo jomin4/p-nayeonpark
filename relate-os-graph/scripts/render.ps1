@@ -22,15 +22,23 @@ $edge = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $edge) { throw 'Microsoft Edge를 찾을 수 없다.' }
 
-$profileDir = Join-Path ([IO.Path]::GetTempPath()) 'relate-os-graph-render'
+# 호출마다 별도 프로필을 써서 여러 렌더링이 동시에 돌아도 충돌하지 않게 한다.
+$profileDir = Join-Path ([IO.Path]::GetTempPath()) ('relate-os-graph-render-' + [guid]::NewGuid().ToString('N'))
 $url = 'file:///' + ($htmlPath -replace '\\', '/')
+if (Test-Path $Out) { Remove-Item $Out -Force }
 
-& $edge --headless=new --disable-gpu --hide-scrollbars --no-first-run `
-  --user-data-dir="$profileDir" --force-device-scale-factor=2 `
-  --window-size="$Width,$Height" --virtual-time-budget=3000 `
-  --screenshot="$Out" $url 2>$null | Out-Null
+try {
+  & $edge --headless=new --disable-gpu --hide-scrollbars --no-first-run `
+    --user-data-dir="$profileDir" --force-device-scale-factor=2 `
+    --window-size="$Width,$Height" --virtual-time-budget=3000 `
+    --screenshot="$Out" $url 2>$null | Out-Null
 
-$deadline = (Get-Date).AddSeconds(15)
-while (-not (Test-Path $Out) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 200 }
-if (-not (Test-Path $Out)) { throw "렌더링 실패: $Out" }
-Write-Output "rendered $Out"
+  $deadline = (Get-Date).AddSeconds(20)
+  while (-not (Test-Path $Out) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 200 }
+  if (-not (Test-Path $Out)) { throw "렌더링 실패: $Out" }
+  Write-Output "rendered $Out"
+}
+finally {
+  Start-Sleep -Milliseconds 300
+  Remove-Item -LiteralPath $profileDir -Recurse -Force -ErrorAction SilentlyContinue
+}

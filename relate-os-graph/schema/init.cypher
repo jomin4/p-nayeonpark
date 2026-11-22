@@ -28,4 +28,5 @@ CREATE CONSTRAINT post_status_str     IF NOT EXISTS FOR (p:Post)     REQUIRE p.s
 // ---------- 조회용 인덱스 ----------
 CREATE INDEX question_answered IF NOT EXISTS FOR (q:Question) ON (q.answered);
 CREATE INDEX post_status       IF NOT EXISTS FOR (p:Post)     ON (p.status);
+CREATE INDEX session_topic     IF NOT EXISTS FOR (s:Session)  ON (s.topic);
 CREATE FULLTEXT INDEX concept_text IF NOT EXISTS FOR (c:Concept) ON EACH [c.name, c.summary];

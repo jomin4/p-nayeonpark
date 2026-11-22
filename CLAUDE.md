@@ -80,12 +80,28 @@
 5. 개념 정리: 새로 배운 `Concept`, 선수 관계, 헷갈린 개념 쌍, `Question`, `Example`을 기록한다.
 6. 세션 마무리: `Session.summary`를 채우고 `COVERED`, `PRODUCED`를 연결한 다음 커밋하고 푸시한다.
 
+## 단원 병렬 진행 (서브에이전트)
+
+여러 단원을 서브에이전트로 동시에 진행할 때는 역할을 나눈다. relate 그래프는 writer가 하나뿐이라 동시 쓰기를 하지 않는다.
+
+| 역할 | 하는 일 | 하지 않는 일 |
+|---|---|---|
+| 서브에이전트 (단원 1개 담당) | 웹 조사, 시각화 HTML·PNG, 블로그 글, `graph-data/<NN>-<topic>.json` 작성, 검증기 통과 | 그래프 DB 쓰기, git 커밋·푸시, 자기 단원 밖 파일 수정 |
+| 메인 세션 | 검증기 재실행, `scripts/load-topic.cypher`로 단원별 순차 적재, 결과 확인, 커밋·푸시 | 서브에이전트 산출물을 검증 없이 적재 |
+
+- 그래프 데이터 형식의 기준은 [graph-data/01-os-overview.json](relate-os-graph/graph-data/01-os-overview.json)이다.
+- 검증: `python -I scripts/validate_topic.py graph-data/<NN>-<topic>.json` (`relate-os-graph/`에서 실행)
+- 개념은 한 단원만 소유한다. 다른 단원 개념은 slug로 참조만 한다.
+- 그래프를 처음부터 다시 만들 때: `init.cypher` → `seed-topics.cypher` → `graph-data/*.json`을 번호 순서로 두 번 적재(두 번째에 앞쪽 참조가 채워진다).
+
 ## 파일 위치
 
 | 무엇 | 경로 |
 |---|---|
 | 블로그 글 | `relate-os-graph/posts/YYYY-MM-DD-<slug>.md` |
 | 글에 쓰는 시각화 자료 | `relate-os-graph/posts/assets/<slug>/` (`Visual.path`는 `relate-os-graph/` 기준 상대 경로) |
+| 단원별 그래프 데이터 | `relate-os-graph/graph-data/<NN>-<topic>.json` |
+| 그래프 데이터 검증·적재 | `relate-os-graph/scripts/validate_topic.py`, `relate-os-graph/scripts/load-topic.cypher` |
 | 시각화 렌더링 (HTML → PNG) | `relate-os-graph/scripts/render.ps1` |
 | 자주 쓰는 조회 쿼리 | `relate-os-graph/scripts/queries.cypher` |
 | 아키텍처·설계 문서 | `relate-os-graph/docs/` |
