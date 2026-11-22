@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interrupt Flow</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 350" role="img" aria-label="타이머 인터럽트가 발생하면 하드웨어가 레지스터를 커널 스택에 저장하고 트랩 테이블에서 핸들러를 찾은 뒤, 운영체제 핸들러가 실행되고 return-from-trap으로 사용자 모드에 돌아가는 흐름">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+  </defs>
+
+  <rect x="40" y="30" width="920" height="110" rx="16" fill="var(--lane)"/>
+  <text class="t" x="58" y="90">사용자 모드</text>
+  <rect x="40" y="170" width="920" height="120" rx="16" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="58" y="237" style="fill:var(--core-ink)">커널 모드</text>
+
+  <!-- process A -->
+  <rect x="170" y="58" width="160" height="56" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t" x="250" y="91" text-anchor="middle">프로세스 실행</text>
+
+  <!-- interrupt arrow -->
+  <path d="M332 86 H440 V196" fill="none" stroke="var(--hw)" stroke-width="2.2" marker-end="url(#ah-hw)"/>
+  <circle cx="386" cy="86" r="16" fill="var(--hw)"/>
+  <path d="M389 74 L380 88 H387 L383 99 L393 84 H386 Z" fill="#fff"/>
+  <text class="s" x="386" y="126" text-anchor="middle" style="fill:var(--hw);font-weight:700">타이머 인터럽트</text>
+
+  <!-- hw steps -->
+  <rect x="360" y="200" width="160" height="64" rx="12" fill="var(--hw-bg)" stroke="var(--hw)"/>
+  <text class="t" x="440" y="227" text-anchor="middle" style="fill:var(--hw-ink)">레지스터 저장</text>
+  <text class="s m" x="440" y="248" text-anchor="middle">→ kernel stack</text>
+  <line x1="522" y1="232" x2="546" y2="232" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+  <rect x="550" y="200" width="160" height="64" rx="12" fill="var(--hw-bg)" stroke="var(--hw)"/>
+  <text class="t" x="630" y="227" text-anchor="middle" style="fill:var(--hw-ink)">트랩 테이블 조회</text>
+  <text class="s m" x="630" y="248" text-anchor="middle">→ handler addr</text>
+  <line x1="712" y1="232" x2="736" y2="232" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+
+  <!-- os step -->
+  <rect x="740" y="200" width="170" height="64" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="t" x="825" y="227" text-anchor="middle" style="fill:var(--core-ink)">핸들러 실행</text>
+  <text class="s" x="825" y="248" text-anchor="middle">스케줄러 판단</text>
+
+  <!-- return -->
+  <line x1="825" y1="198" x2="825" y2="118" stroke="var(--ret)" stroke-width="2.2" marker-end="url(#ah-ret)"/>
+  <rect x="740" y="58" width="170" height="56" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t" x="825" y="91" text-anchor="middle">실행 재개</text>
+  <rect x="604" y="144" width="200" height="24" rx="12" fill="var(--card)" stroke="var(--ret)"/>
+  <text class="m" x="704" y="161" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--ret)">return-from-trap</text>
+
+  <!-- legend -->
+  <rect x="170" y="312" width="16" height="16" rx="4" fill="var(--hw-bg)" stroke="var(--hw)"/>
+  <text class="s" x="194" y="325" style="font-weight:700">하드웨어가 수행</text>
+  <rect x="320" y="312" width="16" height="16" rx="4" fill="var(--card)" stroke="var(--core)"/>
+  <text class="s" x="344" y="325" style="font-weight:700">운영체제가 수행</text>
+</svg>
+</figure>
+</body>
+</html>

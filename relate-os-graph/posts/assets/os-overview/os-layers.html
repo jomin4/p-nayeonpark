@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OS Layers</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #5F5E5A; --hw-bg: #E8E6DE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #B4B2A9; --hw-bg: #2C2C2A;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 16px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 13px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .arr { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 520" role="img" aria-label="사용자 프로그램, 시스템 콜, 커널의 가상화 계층, 하드웨어로 이어지는 운영체제 계층 구조">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+  </defs>
+
+  <!-- user band -->
+  <rect x="40" y="30" width="760" height="110" rx="16" fill="var(--lane)"/>
+  <g>
+    <rect x="70" y="50" width="200" height="70" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+    <g class="ico" transform="translate(92 70)"><circle cx="15" cy="15" r="14"/><ellipse cx="15" cy="15" rx="6" ry="14"/><line x1="1" y1="15" x2="29" y2="15"/></g>
+    <text class="t" x="138" y="91">브라우저</text>
+  </g>
+  <g>
+    <rect x="300" y="50" width="200" height="70" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+    <g class="ico" transform="translate(324 68)"><path d="M0 0 H16 L24 8 V34 H0 Z"/><path d="M16 0 V8 H24"/><line x1="5" y1="17" x2="19" y2="17"/><line x1="5" y1="24" x2="19" y2="24"/></g>
+    <text class="t" x="368" y="91">편집기</text>
+  </g>
+  <g>
+    <rect x="530" y="50" width="200" height="70" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+    <g class="ico" transform="translate(552 70)"><circle cx="15" cy="15" r="14"/><path d="M11 8 L22 15 L11 22 Z"/></g>
+    <text class="t" x="598" y="91">플레이어</text>
+  </g>
+
+  <!-- syscall boundary -->
+  <line x1="40" y1="176" x2="800" y2="176" stroke="var(--core)" stroke-width="1.6" stroke-dasharray="6 6"/>
+  <rect x="690" y="164" width="100" height="24" rx="12" fill="var(--card)" stroke="var(--core)"/>
+  <text class="m" x="740" y="181" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--core)">시스템 콜</text>
+  <line class="arr" x1="170" y1="122" x2="170" y2="206" marker-end="url(#ah)"/>
+  <line class="arr" x1="400" y1="122" x2="400" y2="206" marker-end="url(#ah)"/>
+  <line class="arr" x1="630" y1="122" x2="630" y2="206" marker-end="url(#ah)"/>
+
+  <!-- kernel band -->
+  <rect x="40" y="210" width="760" height="130" rx="16" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <g>
+    <rect x="70" y="252" width="200" height="66" rx="12" fill="var(--card)" stroke="var(--core)"/>
+    <text class="t" x="170" y="280" text-anchor="middle" style="fill:var(--core-ink)">프로세스</text>
+    <text class="s m" x="170" y="302" text-anchor="middle">virtual CPU</text>
+  </g>
+  <g>
+    <rect x="300" y="252" width="200" height="66" rx="12" fill="var(--card)" stroke="var(--core)"/>
+    <text class="t" x="400" y="280" text-anchor="middle" style="fill:var(--core-ink)">주소 공간</text>
+    <text class="s m" x="400" y="302" text-anchor="middle">virtual memory</text>
+  </g>
+  <g>
+    <rect x="530" y="252" width="200" height="66" rx="12" fill="var(--card)" stroke="var(--core)"/>
+    <text class="t" x="630" y="280" text-anchor="middle" style="fill:var(--core-ink)">파일</text>
+    <text class="s m" x="630" y="302" text-anchor="middle">disk abstraction</text>
+  </g>
+  <text x="60" y="238" font-size="15" font-weight="700" fill="var(--core-ink)">커널</text>
+
+  <line class="arr" x1="170" y1="320" x2="170" y2="384" marker-end="url(#ah)"/>
+  <line class="arr" x1="400" y1="320" x2="400" y2="384" marker-end="url(#ah)"/>
+  <line class="arr" x1="630" y1="320" x2="630" y2="384" marker-end="url(#ah)"/>
+
+  <!-- hardware band -->
+  <rect x="40" y="388" width="760" height="112" rx="16" fill="var(--hw-bg)"/>
+  <g class="ico" style="stroke:var(--hw)">
+    <g transform="translate(130 412)">
+      <rect x="8" y="8" width="30" height="30" rx="3"/><rect x="16" y="16" width="14" height="14"/>
+      <path d="M15 8V2M23 8V2M31 8V2M15 38v6M23 38v6M31 38v6M8 15H2M8 23H2M8 31H2M38 15h6M38 23h6M38 31h6"/>
+    </g>
+    <g transform="translate(358 422)">
+      <rect x="0" y="0" width="84" height="26" rx="3"/>
+      <path d="M10 6v14M24 6v14M38 6v14M52 6v14M66 6v14M8 26v6M76 26v6"/>
+    </g>
+    <g transform="translate(606 410)">
+      <path d="M0 8 V40 A24 7 0 0 0 48 40 V8"/><ellipse cx="24" cy="8" rx="24" ry="7"/><path d="M0 24 A24 7 0 0 0 48 24"/>
+    </g>
+  </g>
+  <text class="t" x="153" y="482" text-anchor="middle" style="fill:var(--hw)">CPU</text>
+  <text class="t" x="400" y="482" text-anchor="middle" style="fill:var(--hw)">메모리</text>
+  <text class="t" x="630" y="482" text-anchor="middle" style="fill:var(--hw)">디스크</text>
+
+  <!-- mode brackets -->
+  <g stroke="var(--muted)" stroke-width="1.6" fill="none">
+    <path d="M826 34 h10 V170 h-10"/>
+    <path d="M826 214 h10 V336 h-10" stroke="var(--core)"/>
+    <path d="M826 392 h10 V496 h-10"/>
+  </g>
+  <text class="t" x="852" y="96">사용자 모드</text>
+  <text class="t" x="852" y="281" style="fill:var(--core)">커널 모드</text>
+  <text class="t" x="852" y="450" style="fill:var(--hw)">하드웨어</text>
+</svg>
+</figure>
+</body>
+</html>

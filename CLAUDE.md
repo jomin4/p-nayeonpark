@@ -44,7 +44,7 @@
 |---|---|---|---|
 | `Topic` | `slug` | `name` | `order` (단원 순서, 정수), `summary` |
 | `Concept` | `slug` | `name` | `summary`, `level` (1 기초 · 2 중급 · 3 심화) |
-| `Session` | `id` (`YYYY-MM-DD-NN`) | `date` | `summary` |
+| `Session` | `id` (`YYYY-MM-DD-NN`) | `date` | `topic` (단원 slug), `summary` |
 | `Question` | `id` (`<session id>-qN`) | `text` | `answered` (불리언), `answer` |
 | `Example` | `id` (`<concept slug>-exN`) | | `kind` (`code` · `analogy`), `body` |
 | `Post` | `slug` | `title` | `status` (`draft` · `published`), `path` |
@@ -86,5 +86,7 @@
 |---|---|
 | 블로그 글 | `relate-os-graph/posts/YYYY-MM-DD-<slug>.md` |
 | 글에 쓰는 시각화 자료 | `relate-os-graph/posts/assets/<slug>/` (`Visual.path`는 `relate-os-graph/` 기준 상대 경로) |
+| 시각화 렌더링 (HTML → PNG) | `relate-os-graph/scripts/render.ps1` |
+| 자주 쓰는 조회 쿼리 | `relate-os-graph/scripts/queries.cypher` |
 | 아키텍처·설계 문서 | `relate-os-graph/docs/` |
 | 스키마 | `relate-os-graph/schema/init.cypher` |

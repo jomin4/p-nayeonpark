@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dual Mode</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --trap: #534AB7; --exc: #D85A30; --irq: #BA7517; --ret: #0F6E56; --deny: #A32D2D;
+    --hw: #5F5E5A; --hw-bg: #E8E6DE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --trap: #AFA9EC; --exc: #F0997B; --irq: #EF9F27; --ret: #5DCAA5; --deny: #F09595;
+      --hw: #B4B2A9; --hw-bg: #2C2C2A;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 16px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 13px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .b text { font-size: 13px; font-weight: 700; fill: #fff; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 600" role="img" aria-label="사용자 모드와 커널 모드 사이를 오가는 트랩, 예외, 인터럽트, return-from-trap, 그리고 거부되는 특권 명령어">
+  <defs>
+    <marker id="a-trap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--trap)"/></marker>
+    <marker id="a-exc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--exc)"/></marker>
+    <marker id="a-irq" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--irq)"/></marker>
+    <marker id="a-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+  </defs>
+
+  <!-- zones -->
+  <rect x="40" y="30" width="680" height="200" rx="16" fill="var(--lane)"/>
+  <text class="t" x="60" y="60">사용자 모드</text>
+  <text class="s m" x="60" y="80">ring 3</text>
+  <rect x="40" y="260" width="680" height="220" rx="16" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="700" y="290" text-anchor="end" style="fill:var(--core-ink)">커널 모드</text>
+  <text class="s m" x="700" y="310" text-anchor="end">ring 0</text>
+  <rect x="330" y="233" width="100" height="24" rx="12" fill="var(--card)" stroke="var(--muted)"/>
+  <text class="m" x="380" y="250" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">mode bit</text>
+
+  <!-- process -->
+  <rect x="90" y="96" width="240" height="76" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <g class="ico" stroke="var(--ink)" transform="translate(112 118)"><rect x="0" y="0" width="32" height="32" rx="4"/><path d="M7 11l5 5-5 5M16 22h9"/></g>
+  <text class="t" x="160" y="140">사용자 프로세스</text>
+
+  <!-- hardware -->
+  <rect x="780" y="96" width="180" height="76" rx="12" fill="var(--hw-bg)"/>
+  <g class="ico" stroke="var(--hw)" transform="translate(800 116)"><circle cx="18" cy="18" r="16"/><path d="M18 9v9l6 4"/></g>
+  <text class="t" x="846" y="132" style="fill:var(--hw)">장치</text>
+  <text class="t" x="846" y="152" style="fill:var(--hw)">타이머</text>
+
+  <!-- kernel box -->
+  <rect x="90" y="330" width="550" height="120" rx="12" fill="var(--card)" stroke="var(--core)"/>
+  <rect x="110" y="362" width="160" height="56" rx="10" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="t" x="190" y="395" text-anchor="middle" style="fill:var(--core-ink)">트랩 테이블</text>
+  <rect x="300" y="362" width="150" height="56" rx="10" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="t" x="375" y="395" text-anchor="middle" style="fill:var(--core-ink)">핸들러</text>
+  <rect x="480" y="362" width="140" height="56" rx="10" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="t" x="550" y="395" text-anchor="middle" style="fill:var(--core-ink)">커널 스택</text>
+  <line x1="272" y1="390" x2="296" y2="390" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#a-mut)"/>
+
+  <!-- 1 trap -->
+  <line x1="130" y1="174" x2="130" y2="326" stroke="var(--trap)" stroke-width="2.2" marker-end="url(#a-trap)"/>
+  <!-- 2 exception -->
+  <line x1="200" y1="174" x2="200" y2="326" stroke="var(--exc)" stroke-width="2.2" marker-end="url(#a-exc)"/>
+  <!-- 4 return-from-trap -->
+  <line x1="290" y1="328" x2="290" y2="176" stroke="var(--ret)" stroke-width="2.2" marker-end="url(#a-ret)"/>
+  <!-- 3 interrupt -->
+  <path d="M870 174 V390 H644" fill="none" stroke="var(--irq)" stroke-width="2.2" marker-end="url(#a-irq)"/>
+  <!-- 5 denied privileged instruction -->
+  <line x1="332" y1="134" x2="776" y2="134" stroke="var(--deny)" stroke-width="2" stroke-dasharray="7 6"/>
+  <circle cx="600" cy="134" r="15" fill="var(--card)" stroke="var(--deny)" stroke-width="2"/>
+  <path d="M593 127l14 14M607 127l-14 14" stroke="var(--deny)" stroke-width="2.4" stroke-linecap="round"/>
+
+  <!-- badges -->
+  <g class="b">
+    <circle cx="130" cy="205" r="13" fill="var(--trap)"/><text x="130" y="210" text-anchor="middle">1</text>
+    <circle cx="200" cy="205" r="13" fill="var(--exc)"/><text x="200" y="210" text-anchor="middle">2</text>
+    <circle cx="870" cy="290" r="13" fill="var(--irq)"/><text x="870" y="295" text-anchor="middle">3</text>
+    <circle cx="290" cy="205" r="13" fill="var(--ret)"/><text x="290" y="210" text-anchor="middle">4</text>
+    <circle cx="460" cy="134" r="13" fill="var(--deny)"/><text x="460" y="139" text-anchor="middle">5</text>
+  </g>
+
+  <!-- legend -->
+  <g class="b">
+    <circle cx="60" cy="540" r="11" fill="var(--trap)"/><text x="60" y="545" text-anchor="middle" font-size="12">1</text>
+    <circle cx="245" cy="540" r="11" fill="var(--exc)"/><text x="245" y="545" text-anchor="middle" font-size="12">2</text>
+    <circle cx="350" cy="540" r="11" fill="var(--irq)"/><text x="350" y="545" text-anchor="middle" font-size="12">3</text>
+    <circle cx="480" cy="540" r="11" fill="var(--ret)"/><text x="480" y="545" text-anchor="middle" font-size="12">4</text>
+    <circle cx="690" cy="540" r="11" fill="var(--deny)"/><text x="690" y="545" text-anchor="middle" font-size="12">5</text>
+  </g>
+  <g font-size="14" font-weight="700" fill="var(--ink)">
+    <text x="78" y="545">트랩 (시스템 콜)</text>
+    <text x="263" y="545">예외</text>
+    <text x="368" y="545">인터럽트</text>
+    <text x="498" y="545" class="m">return-from-trap</text>
+    <text x="708" y="545">특권 명령어 → 거부</text>
+  </g>
+</svg>
+</figure>
+</body>
+</html>
