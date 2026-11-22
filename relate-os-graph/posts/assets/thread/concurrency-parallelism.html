@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concurrency vs Parallelism</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --t1: #534AB7; --t1-bg: #EEEDFE; --t2: #BA7517; --t2-bg: #FAEEDA;
+    --done: #0F6E56; --hw: #5F5E5A; --hw-bg: #E8E6DE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --t1: #AFA9EC; --t1-bg: #26215C; --t2: #EF9F27; --t2-bg: #412402;
+      --done: #5DCAA5; --hw: #B4B2A9; --hw-bg: #2C2C2A;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 16px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 13px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .a rect { fill: var(--t1-bg); stroke: var(--t1); stroke-width: 1.4; }
+  .b rect { fill: var(--t2-bg); stroke: var(--t2); stroke-width: 1.4; }
+  .a text, .b text { font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; font-weight: 700; text-anchor: middle; }
+  .a text { fill: var(--t1); } .b text { fill: var(--t2); }
+  .core rect { fill: var(--hw-bg); }
+  .core text { fill: var(--hw); font-size: 13px; font-weight: 700; text-anchor: middle; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 430" role="img" aria-label="코어 하나에서 두 스레드가 번갈아 실행되는 동시성과, 코어 두 개에서 동시에 실행되는 병렬성의 시간 흐름 비교">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+  </defs>
+
+  <!-- group 1: concurrency -->
+  <rect x="40" y="30" width="920" height="140" rx="16" fill="var(--lane)"/>
+  <text class="t" x="60" y="62">동시성</text>
+  <text class="s m" x="60" y="82">concurrency · 1 core</text>
+  <g class="core"><rect x="60" y="100" width="110" height="40" rx="10"/><text x="115" y="125">코어 0</text></g>
+  <g class="a">
+    <rect x="200" y="100" width="56" height="40" rx="6"/><text x="228" y="125">T1</text>
+    <rect x="320" y="100" width="56" height="40" rx="6"/><text x="348" y="125">T1</text>
+    <rect x="440" y="100" width="56" height="40" rx="6"/><text x="468" y="125">T1</text>
+    <rect x="560" y="100" width="56" height="40" rx="6"/><text x="588" y="125">T1</text>
+    <rect x="680" y="100" width="56" height="40" rx="6"/><text x="708" y="125">T1</text>
+    <rect x="800" y="100" width="56" height="40" rx="6"/><text x="828" y="125">T1</text>
+  </g>
+  <g class="b">
+    <rect x="260" y="100" width="56" height="40" rx="6"/><text x="288" y="125">T2</text>
+    <rect x="380" y="100" width="56" height="40" rx="6"/><text x="408" y="125">T2</text>
+    <rect x="500" y="100" width="56" height="40" rx="6"/><text x="528" y="125">T2</text>
+    <rect x="620" y="100" width="56" height="40" rx="6"/><text x="648" y="125">T2</text>
+    <rect x="740" y="100" width="56" height="40" rx="6"/><text x="768" y="125">T2</text>
+    <rect x="860" y="100" width="56" height="40" rx="6"/><text x="888" y="125">T2</text>
+  </g>
+  <!-- finish -->
+  <line x1="918" y1="92" x2="918" y2="148" stroke="var(--done)" stroke-width="2.4"/>
+
+  <!-- group 2: parallelism -->
+  <rect x="40" y="196" width="920" height="186" rx="16" fill="var(--lane)"/>
+  <text class="t" x="60" y="228">병렬성</text>
+  <text class="s m" x="60" y="248">parallelism · 2 cores</text>
+  <g class="core">
+    <rect x="60" y="266" width="110" height="40" rx="10"/><text x="115" y="291">코어 0</text>
+    <rect x="60" y="320" width="110" height="40" rx="10"/><text x="115" y="345">코어 1</text>
+  </g>
+  <g class="a">
+    <rect x="200" y="266" width="56" height="40" rx="6"/><text x="228" y="291">T1</text>
+    <rect x="260" y="266" width="56" height="40" rx="6"/><text x="288" y="291">T1</text>
+    <rect x="320" y="266" width="56" height="40" rx="6"/><text x="348" y="291">T1</text>
+    <rect x="380" y="266" width="56" height="40" rx="6"/><text x="408" y="291">T1</text>
+    <rect x="440" y="266" width="56" height="40" rx="6"/><text x="468" y="291">T1</text>
+    <rect x="500" y="266" width="56" height="40" rx="6"/><text x="528" y="291">T1</text>
+  </g>
+  <g class="b">
+    <rect x="200" y="320" width="56" height="40" rx="6"/><text x="228" y="345">T2</text>
+    <rect x="260" y="320" width="56" height="40" rx="6"/><text x="288" y="345">T2</text>
+    <rect x="320" y="320" width="56" height="40" rx="6"/><text x="348" y="345">T2</text>
+    <rect x="380" y="320" width="56" height="40" rx="6"/><text x="408" y="345">T2</text>
+    <rect x="440" y="320" width="56" height="40" rx="6"/><text x="468" y="345">T2</text>
+    <rect x="500" y="320" width="56" height="40" rx="6"/><text x="528" y="345">T2</text>
+  </g>
+  <line x1="558" y1="258" x2="558" y2="368" stroke="var(--done)" stroke-width="2.4"/>
+
+  <!-- done badges -->
+  <g font-size="13" font-weight="700" fill="var(--done)">
+    <circle cx="918" cy="84" r="9" fill="var(--done)"/>
+    <path d="M913.5 84l3 3 5-6" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="558" cy="250" r="9" fill="var(--done)"/>
+    <path d="M553.5 250l3 3 5-6" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="574" y="255">완료</text>
+    <text x="900" y="89" text-anchor="end">완료</text>
+  </g>
+
+  <!-- time axis -->
+  <line x1="200" y1="404" x2="940" y2="404" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text class="s" x="190" y="409" text-anchor="end" style="font-weight:700">시간</text>
+</svg>
+</figure>
+</body>
+</html>

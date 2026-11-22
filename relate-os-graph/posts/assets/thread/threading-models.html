@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Threading Models</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --th: #BA7517; --th-bg: #FAEEDA; --th-ink: #633806;
+    --hw: #5F5E5A; --hw-bg: #E8E6DE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --th: #EF9F27; --th-bg: #412402; --th-ink: #FAEEDA;
+      --hw: #B4B2A9; --hw-bg: #2C2C2A;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 16px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 13px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .map { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+  .run { stroke: var(--hw); stroke-width: 2; fill: none; }
+  .lbl { fill: var(--ink); font-size: 14px; font-weight: 700; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 500" role="img" aria-label="멀티스레딩 모델 세 가지: N:1은 사용자 스레드 여러 개가 커널 스레드 하나에, 1:1은 하나씩, M:N은 여러 사용자 스레드가 더 적거나 같은 수의 커널 스레드에 대응한다">
+  <defs>
+    <g id="ut">
+      <circle cx="0" cy="0" r="18" fill="var(--th-bg)" stroke="var(--th)" stroke-width="1.6"/>
+      <path class="ico" stroke="var(--th)" d="M-10 0 q2.5 -6 5 0 t5 0 t5 0 t5 0"/>
+    </g>
+    <g id="kt">
+      <rect x="-21" y="-21" width="42" height="42" rx="9" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+      <path class="ico" stroke="var(--core)" d="M-11 0 q2.75 -6.5 5.5 0 t5.5 0 t5.5 0 t5.5 0"/>
+    </g>
+    <g id="cpu">
+      <rect x="-24" y="-20" width="48" height="40" rx="7" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.6"/>
+      <rect x="-10" y="-8" width="20" height="16" rx="3" fill="none" stroke="var(--hw)" stroke-width="1.6"/>
+      <path class="ico" stroke="var(--hw)" d="M-14 -20v-5M0 -20v-5M14 -20v-5M-14 20v5M0 20v5M14 20v5"/>
+    </g>
+    <g id="cpu-idle" opacity="0.4">
+      <rect x="-24" y="-20" width="48" height="40" rx="7" fill="none" stroke="var(--hw)" stroke-width="1.6" stroke-dasharray="4 4"/>
+      <rect x="-10" y="-8" width="20" height="16" rx="3" fill="none" stroke="var(--hw)" stroke-width="1.6"/>
+    </g>
+  </defs>
+
+  <!-- row labels -->
+  <text class="lbl" x="40" y="158">사용자 스레드</text>
+  <text class="lbl" x="40" y="298">커널 스레드</text>
+  <text class="lbl" x="40" y="428">CPU 코어</text>
+
+  <!-- lane bands -->
+  <rect x="160" y="112" width="810" height="84" rx="14" fill="var(--th-bg)" opacity="0.45"/>
+  <rect x="160" y="252" width="810" height="84" rx="14" fill="var(--core-bg)" opacity="0.7"/>
+
+  <!-- panel frames -->
+  <rect x="170" y="30" width="250" height="440" rx="16" fill="none" stroke="var(--stroke)" stroke-width="1.4"/>
+  <rect x="445" y="30" width="250" height="440" rx="16" fill="none" stroke="var(--stroke)" stroke-width="1.4"/>
+  <rect x="720" y="30" width="250" height="440" rx="16" fill="none" stroke="var(--stroke)" stroke-width="1.4"/>
+  <g class="t m" font-size="20" text-anchor="middle">
+    <text x="295" y="70" font-size="20">N : 1</text>
+    <text x="570" y="70" font-size="20">1 : 1</text>
+    <text x="845" y="70" font-size="20">M : N</text>
+  </g>
+  <g class="s" text-anchor="middle" style="font-weight:700">
+    <text x="295" y="92">다대일</text>
+    <text x="570" y="92">일대일</text>
+    <text x="845" y="92">다대다</text>
+  </g>
+
+  <!-- N:1 -->
+  <path class="map" d="M220 172 L284 274 M270 172 L290 272 M320 172 L300 272 M370 172 L306 274"/>
+  <use href="#ut" x="220" y="154"/><use href="#ut" x="270" y="154"/><use href="#ut" x="320" y="154"/><use href="#ut" x="370" y="154"/>
+  <use href="#kt" x="295" y="294"/>
+  <path class="run" d="M285 316 L250 398"/>
+  <use href="#cpu" x="245" y="424"/>
+  <use href="#cpu-idle" x="345" y="424"/>
+
+  <!-- 1:1 -->
+  <path class="map" d="M495 172 V272 M545 172 V272 M595 172 V272 M645 172 V272"/>
+  <use href="#ut" x="495" y="154"/><use href="#ut" x="545" y="154"/><use href="#ut" x="595" y="154"/><use href="#ut" x="645" y="154"/>
+  <use href="#kt" x="495" y="294"/><use href="#kt" x="545" y="294"/><use href="#kt" x="595" y="294"/><use href="#kt" x="645" y="294"/>
+  <path class="run" d="M500 316 L515 398 M640 316 L625 398"/>
+  <use href="#cpu" x="520" y="424"/>
+  <use href="#cpu" x="620" y="424"/>
+
+  <!-- M:N -->
+  <path class="map" d="M753 172 L783 273 M799 172 L793 272 M845 172 V272 M891 172 L897 272 M937 172 L907 273"/>
+  <use href="#ut" x="753" y="154"/><use href="#ut" x="799" y="154"/><use href="#ut" x="845" y="154"/><use href="#ut" x="891" y="154"/><use href="#ut" x="937" y="154"/>
+  <use href="#kt" x="790" y="294"/><use href="#kt" x="845" y="294"/><use href="#kt" x="900" y="294"/>
+  <path class="run" d="M790 316 V398 M900 316 V398"/>
+  <use href="#cpu" x="790" y="424"/>
+  <use href="#cpu" x="900" y="424"/>
+</svg>
+</figure>
+</body>
+</html>

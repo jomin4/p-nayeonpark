@@ -1,0 +1,103 @@
+{
+  "topic": "thread",
+  "session": {
+    "id": "2026-11-23-04",
+    "date": "2026-11-23",
+    "summary": "4단원 스레드와 동시성. 스레드가 프로세스와 공유하는 것(주소 공간·파일)과 각자 갖는 것(레지스터·PC·스택·TCB), 멀티스레딩의 이점, 동시성과 병렬성, 멀티코어와 암달의 법칙, 사용자·커널 스레드와 N:1·1:1·M:N 모델, pthread_create/join 예제, 리눅스 clone 플래그와 스레드 그룹(TGID·TID), NPTL을 정리했다. OSTEP 26·27장, man7 clone(2)·pthreads(7), 위키백과 3개 문서를 참고했다."
+  },
+  "concepts": [
+    {"slug": "thread", "name": "스레드", "level": 1, "summary": "프로세스 안의 실행 흐름 하나. 같은 프로세스의 스레드끼리 주소 공간(코드·데이터·힙)과 열린 파일을 공유하고, 레지스터·PC·스택은 각자 가진다"},
+    {"slug": "tcb", "name": "스레드 제어 블록", "level": 2, "summary": "스레드 하나의 상태(레지스터 등)를 저장하는 자료구조 (TCB, thread control block). 프로세스의 PCB에 대응하며 스레드마다 하나씩 있다"},
+    {"slug": "thread-stack", "name": "스레드별 스택", "level": 2, "summary": "멀티스레드 프로세스에서 스레드마다 따로 두는 스택. 지역 변수·인자·반환 값이 놓이며, 주소 공간 안에 스레드 수만큼 흩어져 있다"},
+    {"slug": "multithreading", "name": "멀티스레딩", "level": 1, "summary": "한 프로세스에 스레드를 여러 개 두는 것. 여러 CPU에서 일을 나누는 병렬화와, 한 스레드가 I/O를 기다리는 동안 다른 스레드가 일하는 I/O 겹치기에 쓴다"},
+    {"slug": "concurrency-vs-parallelism", "name": "동시성과 병렬성", "level": 1, "summary": "동시성은 여러 작업의 실행 기간이 겹치는 것(코어 하나에서 번갈아 실행해도 됨), 병렬성은 여러 작업이 같은 순간에 실행되는 것(코어 여러 개 필요)"},
+    {"slug": "multicore", "name": "멀티코어", "level": 1, "summary": "CPU 코어 여러 개를 한 칩에 넣은 구조. 스레드를 코어마다 하나씩 올려 병렬로 실행할 수 있다"},
+    {"slug": "amdahls-law", "name": "암달의 법칙", "level": 2, "summary": "병렬화 비율 p, 코어 수 N일 때 속도 향상은 1/((1-p)+p/N). 코어를 무한히 늘려도 1/(1-p)를 넘지 못한다 (95%면 최대 20배)"},
+    {"slug": "user-thread", "name": "사용자 스레드", "level": 2, "summary": "사용자 공간 라이브러리가 만들고 스케줄링하는 스레드. 커널은 존재를 모른다. 전환이 매우 빠르지만, N:1에서는 블로킹 시스템 콜 하나가 프로세스 전체를 멈춘다"},
+    {"slug": "kernel-thread", "name": "커널 스레드", "level": 2, "summary": "운영체제가 직접 관리하고 스케줄링하는 스레드 단위. 프로세스마다 적어도 하나 있으며, 같은 프로세스 안에서의 전환은 가상 메모리를 바꾸지 않는다"},
+    {"slug": "multithreading-model", "name": "멀티스레딩 모델", "level": 2, "summary": "사용자 스레드를 커널 스레드에 대응시키는 방식. N:1(다대일), 1:1(일대일), M:N(다대다)이 있다"},
+    {"slug": "many-to-one-model", "name": "다대일 모델", "level": 2, "summary": "사용자 스레드 전부를 커널 스레드 하나에 대응시키는 N:1 모델. 전환은 빠르지만 멀티코어를 못 쓰고, 블로킹 I/O가 프로세스 전체를 멈춘다 (GNU Portable Threads)"},
+    {"slug": "one-to-one-model", "name": "일대일 모델", "level": 2, "summary": "사용자 스레드 하나를 커널 스레드 하나에 대응시키는 1:1 모델. 가장 단순하고 멀티코어를 쓸 수 있으며, 리눅스(NPTL)·Win32·macOS·FreeBSD가 쓴다"},
+    {"slug": "many-to-many-model", "name": "다대다 모델", "level": 3, "summary": "사용자 스레드 M개를 커널 스레드 N개에 대응시키는 M:N 모델. 시스템 콜 없이 전환하면서 병렬성도 얻지만 구현이 복잡해, 옛 Solaris·NetBSD·FreeBSD는 1:1로 돌아갔다"},
+    {"slug": "pthreads", "name": "POSIX 스레드", "level": 2, "summary": "유닉스 계열의 표준 스레드 API (pthreads). 헤더 pthread.h를 쓰고 리눅스에서는 -pthread 옵션으로 컴파일한다"},
+    {"slug": "pthread-create", "name": "pthread_create", "level": 2, "summary": "새 스레드를 만들어 start_routine(arg)부터 실행하게 하는 pthreads 함수. 인자·반환 값이 void *라 어떤 타입이든 넘길 수 있고, 실행 순서는 스케줄러가 정한다"},
+    {"slug": "pthread-join", "name": "pthread_join", "level": 2, "summary": "지정한 스레드가 끝날 때까지 기다리고 반환 값을 받는 pthreads 함수. 스레드 스택에 있는 지역 변수 주소를 반환하면 안 된다"},
+    {"slug": "clone", "name": "clone 시스템 콜", "level": 2, "summary": "새 실행 흐름이 부모와 무엇을 공유할지(CLONE_VM, CLONE_FILES, CLONE_SIGHAND, CLONE_THREAD 등) 플래그로 고르는 리눅스 시스템 콜. 스레드 구현이 대표 용도다"},
+    {"slug": "thread-group", "name": "스레드 그룹", "level": 3, "summary": "CLONE_THREAD로 묶인 리눅스 스레드들의 집합. 그룹은 TGID를 공유해 getpid()가 같고, 스레드마다 고유한 TID(gettid())를 가진다"},
+    {"slug": "nptl", "name": "NPTL", "level": 3, "summary": "glibc의 리눅스 pthreads 구현 (Native POSIX Thread Library). 1:1 구현이며 모든 스레드가 한 스레드 그룹에 들어가 PID를 공유한다. LinuxThreads를 대체했다"}
+  ],
+  "prerequisites": [
+    {"from": "process", "to": "thread"},
+    {"from": "pcb", "to": "tcb"},
+    {"from": "thread", "to": "tcb"},
+    {"from": "context-switch", "to": "tcb"},
+    {"from": "thread", "to": "thread-stack"},
+    {"from": "thread", "to": "multithreading"},
+    {"from": "multithreading", "to": "concurrency-vs-parallelism"},
+    {"from": "concurrency-vs-parallelism", "to": "multicore"},
+    {"from": "multicore", "to": "amdahls-law"},
+    {"from": "thread", "to": "user-thread"},
+    {"from": "thread", "to": "kernel-thread"},
+    {"from": "kernel", "to": "kernel-thread"},
+    {"from": "user-thread", "to": "multithreading-model"},
+    {"from": "kernel-thread", "to": "multithreading-model"},
+    {"from": "multithreading-model", "to": "many-to-one-model"},
+    {"from": "multithreading-model", "to": "one-to-one-model"},
+    {"from": "multithreading-model", "to": "many-to-many-model"},
+    {"from": "system-call", "to": "many-to-one-model"},
+    {"from": "thread", "to": "pthreads"},
+    {"from": "pthreads", "to": "pthread-create"},
+    {"from": "thread-stack", "to": "pthread-create"},
+    {"from": "pthread-create", "to": "pthread-join"},
+    {"from": "fork", "to": "clone"},
+    {"from": "system-call", "to": "clone"},
+    {"from": "thread", "to": "clone"},
+    {"from": "clone", "to": "thread-group"},
+    {"from": "one-to-one-model", "to": "nptl"},
+    {"from": "pthreads", "to": "nptl"},
+    {"from": "thread-group", "to": "nptl"}
+  ],
+  "confusedWith": [
+    {"a": "thread", "b": "process", "note": "프로세스는 자원(주소 공간·파일)을 가진 단위, 스레드는 그 안에서 실행·스케줄링되는 단위다. 같은 프로세스의 스레드는 주소 공간을 공유하지만 프로세스끼리는 따로다"},
+    {"a": "tcb", "b": "pcb", "note": "PCB는 프로세스 전체 상태(주소 공간 등 포함), TCB는 스레드 하나의 실행 상태(레지스터 등)를 담는다. 스레드 전환 때는 페이지 테이블을 바꾸지 않는다"},
+    {"a": "user-thread", "b": "kernel-thread", "note": "누가 관리·스케줄링하느냐의 차이. 사용자 스레드는 라이브러리가(커널은 모름), 커널 스레드는 운영체제가 스케줄링한다"},
+    {"a": "kernel-thread", "b": "kernel-mode", "note": "커널 스레드는 커널이 스케줄링하는 단위라는 뜻이지 커널 모드에서만 실행된다는 뜻이 아니다. 1:1 모델의 pthread 스레드는 평소 사용자 모드에서 실행된다"},
+    {"a": "clone", "b": "fork", "note": "fork는 부모를 복사해 새 프로세스를 만들고, clone은 무엇을 공유할지 플래그로 고른다. 메모리·파일·시그널 핸들러를 공유하고 CLONE_THREAD를 주면 스레드가 된다"}
+  ],
+  "questions": [
+    {"id": "2026-11-23-04-q1", "text": "같은 프로세스의 스레드끼리 공유하는 것과 각자 가지는 것은 무엇인가?", "answered": true, "answer": "코드·전역 데이터·힙(주소 공간 전체), 열린 파일 디스크립터, 시그널 처리 방식, 현재 디렉터리 등은 공유한다. 레지스터와 PC, 스택, 스레드 ID, 시그널 마스크, errno는 스레드마다 따로 가지며 상태는 TCB에 저장한다.", "about": ["thread", "tcb", "thread-stack"]},
+    {"id": "2026-11-23-04-q2", "text": "N:1 모델에서 한 사용자 스레드가 블로킹 시스템 콜을 하면 어떻게 되는가?", "answered": true, "answer": "커널이 아는 실행 단위가 하나뿐이므로 그 커널 스레드가 막히면 프로세스의 모든 사용자 스레드가 함께 멈춘다. 같은 이유로 N:1은 멀티코어도 활용하지 못한다.", "about": ["many-to-one-model", "user-thread"]},
+    {"id": "2026-11-23-04-q3", "text": "95%가 병렬화된 프로그램은 코어를 늘리면 최대 몇 배 빨라지는가?", "answered": true, "answer": "암달의 법칙으로 S(N)=1/(0.05+0.95/N). 8코어에서 약 5.9배, 64코어에서 약 15.4배이고, 코어를 무한히 늘려도 1/0.05=20배가 상한이다.", "about": ["amdahls-law", "multicore"]},
+    {"id": "2026-11-23-04-q4", "text": "리눅스에서 한 프로세스의 스레드들은 왜 getpid() 값이 같은가?", "answered": true, "answer": "NPTL은 스레드를 CLONE_THREAD로 같은 스레드 그룹에 넣는다. getpid()는 그룹이 공유하는 TGID를 돌려주므로 모두 같고, 스레드마다 다른 값은 gettid()의 TID다.", "about": ["thread-group", "clone", "nptl"]},
+    {"id": "2026-11-23-04-q5", "text": "Go의 고루틴처럼 언어 런타임이 M:N 방식으로 스레드를 돌릴 때, 블로킹 시스템 콜 때문에 다른 고루틴이 멈추는 문제를 어떻게 피하는가?", "answered": false, "answer": null, "about": ["many-to-many-model", "user-thread"]},
+    {"id": "2026-11-23-04-q6", "text": "리눅스에서 pthread_create로 만든 스레드의 기본 스택 크기는 무엇으로 정해지는가?", "answered": false, "answer": null, "about": ["thread-stack", "pthread-create"]}
+  ],
+  "examples": [
+    {"id": "thread-ex1", "concept": "thread", "kind": "analogy", "body": "주방: 한 주방(주소 공간)을 여러 요리사(스레드)가 함께 쓴다. 냉장고와 재료(힙·전역 데이터)는 같이 쓰지만, 레시피를 어디까지 했는지(PC)와 자기 도마(스택)는 각자 있다."},
+    {"id": "concurrency-vs-parallelism-ex1", "concept": "concurrency-vs-parallelism", "kind": "analogy", "body": "요리사 한 명이 국을 끓이다 잠깐 찌개를 젓고 다시 국으로 돌아오면 동시성, 요리사 두 명이 국과 찌개를 하나씩 맡으면 병렬성이다."},
+    {"id": "pthread-create-ex1", "concept": "pthread-create", "kind": "code", "body": "#include <pthread.h>\n#include <stdio.h>\n\nvoid *worker(void *arg) {\n    printf(\"%s\\n\", (char *) arg);\n    return NULL;\n}\n\nint main(void) {\n    pthread_t t1, t2;\n    printf(\"main: begin\\n\");\n    pthread_create(&t1, NULL, worker, \"A\");\n    pthread_create(&t2, NULL, worker, \"B\");\n    pthread_join(t1, NULL);   // A, B 출력 순서는 실행마다 다를 수 있다\n    pthread_join(t2, NULL);\n    printf(\"main: end\\n\");   // join 두 번 뒤라 항상 마지막\n    return 0;\n}\n// gcc -Wall -pthread -o t0 t0.c"},
+    {"id": "clone-ex1", "concept": "clone", "kind": "code", "body": "#define _GNU_SOURCE\n#include <sched.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <unistd.h>\n#include <sys/syscall.h>\n\nstatic int counter = 0;\nstatic long child_pid, child_tid;\n\nstatic int child_fn(void *arg) {\n    counter++;                          // CLONE_VM: 부모와 같은 메모리\n    child_pid = syscall(SYS_getpid);    // TGID\n    child_tid = syscall(SYS_gettid);    // TID\n    return 0;\n}\n\nint main(void) {\n    const size_t SZ = 1024 * 1024;\n    char *stack = malloc(SZ);\n    int flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD;\n    clone(child_fn, stack + SZ, flags, NULL);   // 스택은 아래로 자라므로 끝 주소\n    sleep(1);                           // CLONE_THREAD는 wait()로 기다릴 수 없다\n    printf(\"child : pid=%ld tid=%ld\\n\", child_pid, child_tid);\n    printf(\"parent: pid=%ld tid=%ld counter=%d\\n\",\n           (long) syscall(SYS_getpid), (long) syscall(SYS_gettid), counter);\n    return 0;\n}\n// 예상: 두 줄의 pid는 같고 tid만 다르며 counter=1"},
+    {"id": "amdahls-law-ex1", "concept": "amdahls-law", "kind": "code", "body": "S(N) = 1 / ((1 - p) + p / N)\np = 0.95, N = 8  ->  1 / (0.05 + 0.11875) = 1 / 0.16875 ≈ 5.9배\np = 0.95, N → ∞  ->  1 / 0.05 = 20배 (상한)"}
+  ],
+  "sources": [
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/threads-intro.pdf", "title": "OSTEP Ch.26 Concurrency: An Introduction", "kind": "book", "describes": ["thread", "tcb", "thread-stack", "multithreading", "context-switch", "pthread-create", "pthread-join"]},
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/threads-api.pdf", "title": "OSTEP Ch.27 Interlude: Thread API", "kind": "book", "describes": ["pthreads", "pthread-create", "pthread-join", "thread-stack"]},
+    {"url": "https://man7.org/linux/man-pages/man2/clone.2.html", "title": "clone(2) - Linux manual page", "kind": "doc", "describes": ["clone", "thread-group", "fork"]},
+    {"url": "https://man7.org/linux/man-pages/man7/pthreads.7.html", "title": "pthreads(7) - Linux manual page", "kind": "doc", "describes": ["pthreads", "nptl", "thread", "one-to-one-model", "thread-group"]},
+    {"url": "https://en.wikipedia.org/wiki/Thread_(computing)", "title": "Thread (computing) - Wikipedia", "kind": "doc", "describes": ["thread", "user-thread", "kernel-thread", "multithreading-model", "many-to-one-model", "one-to-one-model", "many-to-many-model", "nptl"]},
+    {"url": "https://en.wikipedia.org/wiki/Concurrent_computing", "title": "Concurrent computing - Wikipedia", "kind": "doc", "describes": ["concurrency-vs-parallelism"]},
+    {"url": "https://en.wikipedia.org/wiki/Amdahl%27s_law", "title": "Amdahl's law - Wikipedia", "kind": "doc", "describes": ["amdahls-law", "multicore"]}
+  ],
+  "visuals": [
+    {"path": "posts/assets/thread/thread-vs-process.png", "type": "diagram", "caption": "단일 스레드와 멀티스레드 프로세스: 공유하는 주소 공간(코드·데이터·힙·파일)과 스레드마다 따로인 레지스터·PC·스택·TCB", "depicts": ["thread", "tcb", "thread-stack", "multithreading", "process"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/threads-intro.pdf", "https://man7.org/linux/man-pages/man7/pthreads.7.html", "https://en.wikipedia.org/wiki/Thread_(computing)"]},
+    {"path": "posts/assets/thread/concurrency-parallelism.png", "type": "diagram", "caption": "코어 1개에서 T1·T2를 번갈아 실행하는 동시성과 코어 2개에서 동시에 실행하는 병렬성의 시간 흐름", "depicts": ["concurrency-vs-parallelism", "multicore", "multithreading"], "sources": ["https://en.wikipedia.org/wiki/Concurrent_computing", "https://pages.cs.wisc.edu/~remzi/OSTEP/threads-intro.pdf"]},
+    {"path": "posts/assets/thread/amdahl.png", "type": "chart", "caption": "암달의 법칙: 병렬 비율 50·75·90·95%일 때 코어 1~64개의 속도 향상과 상한", "depicts": ["amdahls-law", "multicore"], "sources": ["https://en.wikipedia.org/wiki/Amdahl%27s_law"]},
+    {"path": "posts/assets/thread/threading-models.png", "type": "diagram", "caption": "멀티스레딩 모델 N:1, 1:1, M:N에서 사용자 스레드 → 커널 스레드 → CPU 코어 대응", "depicts": ["multithreading-model", "many-to-one-model", "one-to-one-model", "many-to-many-model", "user-thread", "kernel-thread"], "sources": ["https://en.wikipedia.org/wiki/Thread_(computing)"]}
+  ],
+  "post": {
+    "slug": "thread",
+    "title": "스레드와 동시성: 한 프로세스 안의 여러 실행 흐름",
+    "path": "posts/2026-11-23-thread.md",
+    "explains": ["thread", "tcb", "thread-stack", "multithreading", "concurrency-vs-parallelism", "multicore", "amdahls-law", "user-thread", "kernel-thread", "multithreading-model", "many-to-one-model", "one-to-one-model", "many-to-many-model", "pthreads", "pthread-create", "pthread-join", "clone", "thread-group", "nptl", "process", "context-switch"]
+  }
+}

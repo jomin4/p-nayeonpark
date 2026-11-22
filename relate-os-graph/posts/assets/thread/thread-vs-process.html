@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thread vs Process</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --th: #BA7517; --th-bg: #FAEEDA; --th-ink: #633806;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --th: #EF9F27; --th-bg: #412402; --th-ink: #FAEEDA;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 16px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 13px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .shared rect { fill: var(--card); stroke: var(--core); }
+  .shared text { fill: var(--core-ink); font-size: 15px; font-weight: 700; text-anchor: middle; }
+  .own rect { fill: var(--th-bg); stroke: var(--th); }
+  .own text { fill: var(--th-ink); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .link { stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 4 5; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 520" role="img" aria-label="단일 스레드 프로세스와 멀티스레드 프로세스 비교: 코드, 데이터, 힙, 파일은 공유하고 레지스터, 스택, TCB는 스레드마다 따로 가진다">
+  <!-- panels -->
+  <rect x="40" y="30" width="300" height="444" rx="16" fill="var(--lane)"/>
+  <text class="t" x="190" y="64" text-anchor="middle">단일 스레드 프로세스</text>
+  <rect x="370" y="30" width="590" height="444" rx="16" fill="var(--lane)"/>
+  <text class="t" x="665" y="64" text-anchor="middle">멀티스레드 프로세스</text>
+
+  <!-- shared: left -->
+  <rect x="60" y="84" width="260" height="132" rx="12" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <g class="shared">
+    <rect x="76" y="118" width="110" height="38" rx="9"/><text x="131" y="142">코드</text>
+    <rect x="194" y="118" width="110" height="38" rx="9"/><text x="249" y="142">데이터</text>
+    <rect x="76" y="164" width="110" height="38" rx="9"/><text x="131" y="188">힙</text>
+    <rect x="194" y="164" width="110" height="38" rx="9"/><text x="249" y="188">파일</text>
+  </g>
+  <text class="s m" x="76" y="106" style="fill:var(--core)">address space</text>
+
+  <!-- shared: right -->
+  <rect x="390" y="84" width="550" height="132" rx="12" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <g class="shared">
+    <rect x="406" y="138" width="118" height="44" rx="9"/><text x="465" y="166">코드</text>
+    <rect x="538" y="138" width="118" height="44" rx="9"/><text x="597" y="166">데이터</text>
+    <rect x="670" y="138" width="118" height="44" rx="9"/><text x="729" y="166">힙</text>
+    <rect x="802" y="138" width="118" height="44" rx="9"/><text x="861" y="166">파일</text>
+  </g>
+  <text class="s m" x="406" y="106" style="fill:var(--core)">address space</text>
+
+  <!-- links -->
+  <line class="link" x1="190" y1="218" x2="190" y2="248"/>
+  <line class="link" x1="475" y1="218" x2="475" y2="248"/>
+  <line class="link" x1="665" y1="218" x2="665" y2="248"/>
+  <line class="link" x1="855" y1="218" x2="855" y2="248"/>
+
+  <!-- thread columns -->
+  <defs><g id="col">
+    <rect x="0" y="250" width="170" height="200" rx="12" fill="var(--card)" stroke="var(--th)" stroke-width="1.4"/>
+    <path class="ico" stroke="var(--th)" d="M18 276 q5 -9 10 0 t10 0 t10 0"/>
+    <g class="own">
+      <rect x="15" y="300" width="140" height="38" rx="9"/><text x="85" y="324">레지스터 · PC</text>
+      <rect x="15" y="348" width="140" height="38" rx="9"/><text x="85" y="372">스택</text>
+      <rect x="15" y="396" width="140" height="38" rx="9"/><text x="85" y="420" class="m">TCB</text>
+    </g>
+  </g></defs>
+  <use href="#col" x="105"/>
+  <use href="#col" x="390"/>
+  <use href="#col" x="580"/>
+  <use href="#col" x="770"/>
+  <g class="t" style="fill:var(--th-ink)">
+    <text x="165" y="282">스레드</text>
+    <text x="450" y="282">스레드 1</text>
+    <text x="640" y="282">스레드 2</text>
+    <text x="830" y="282">스레드 3</text>
+  </g>
+
+  <!-- legend -->
+  <rect x="380" y="490" width="16" height="16" rx="4" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="s" x="404" y="503" style="font-weight:700">공유</text>
+  <rect x="470" y="490" width="16" height="16" rx="4" fill="var(--th-bg)" stroke="var(--th)"/>
+  <text class="s" x="494" y="503" style="font-weight:700">스레드마다 따로</text>
+</svg>
+</figure>
+</body>
+</html>
