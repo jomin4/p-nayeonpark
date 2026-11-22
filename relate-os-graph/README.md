@@ -66,6 +66,9 @@ relate-os-graph/
 ├── data/        # os-graph.rl (그래프 DB 파일, git 제외)
 ├── docs/        # 아키텍처·설계 문서, 시각화 자료, 블로그 글
 │   └── images/
-├── schema/      # 노드·관계 정의, 초기 Cypher
+├── posts/       # 기술 블로그 글 (YYYY-MM-DD-<slug>.md) + assets/
+├── schema/      # init.cypher: 제약조건 16개 · 인덱스 3개
 └── scripts/     # 시드, 내보내기, 시각화
 ```
+
+그래프 쓰기 규칙과 학습 세션 흐름은 레포 루트의 [CLAUDE.md](../CLAUDE.md)에 있다.
