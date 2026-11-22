@@ -87,7 +87,8 @@
 | 역할 | 하는 일 | 하지 않는 일 |
 |---|---|---|
 | 서브에이전트 (단원 1개 담당) | 웹 조사, 시각화 HTML·PNG, 블로그 글, `graph-data/<NN>-<topic>.json` 작성, 검증기 통과 | 그래프 DB 쓰기, git 커밋·푸시, 자기 단원 밖 파일 수정 |
-| 메인 세션 | 검증기 재실행, `scripts/load-topic.cypher`로 단원별 순차 적재, 결과 확인, 커밋·푸시 | 서브에이전트 산출물을 검증 없이 적재 |
+| 메인 세션 | 검증기 재실행, 시각화 검수, 적재 지시, 결과 확인, 커밋·푸시 | 서브에이전트 산출물을 검증 없이 적재 |
+| 적재 에이전트 (한 번에 하나만) | `scripts/load-topic.cypher` + JSON을 `write_cypher`로 단원 순서대로 적재, 확인 쿼리, 미해결 참조 보고 | 파일 수정, git, 병렬 적재 |
 
 - 그래프 데이터 형식의 기준은 [graph-data/01-os-overview.json](relate-os-graph/graph-data/01-os-overview.json)이다.
 - 검증: `python -I scripts/validate_topic.py graph-data/<NN>-<topic>.json` (`relate-os-graph/`에서 실행)

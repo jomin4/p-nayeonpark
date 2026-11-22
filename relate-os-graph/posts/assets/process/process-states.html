@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Process States</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 16px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .l { fill: var(--ink); font-size: 13px; font-weight: 700; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .arr { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 440" role="img" aria-label="프로세스 상태 전이도: 생성에서 준비로, 준비와 실행 사이를 디스패치와 타이머 인터럽트로 오가고, 실행 중 입출력을 기다리면 대기, 완료되면 준비로 돌아가며, exit하면 종료(좀비)가 된다">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+  </defs>
+
+  <!-- new -->
+  <rect x="50" y="40" width="170" height="70" rx="14" fill="var(--lane)" stroke="var(--stroke)"/>
+  <text class="t" x="135" y="72" text-anchor="middle">생성</text>
+  <text class="s m" x="135" y="94" text-anchor="middle">new</text>
+
+  <!-- terminated -->
+  <rect x="780" y="40" width="170" height="70" rx="14" fill="var(--lane)" stroke="var(--stroke)"/>
+  <text class="t" x="865" y="72" text-anchor="middle">종료</text>
+  <text class="s m" x="865" y="94" text-anchor="middle">terminated</text>
+  <!-- zombie chip -->
+  <rect x="800" y="132" width="130" height="28" rx="14" fill="var(--card)" stroke="var(--muted)" stroke-dasharray="4 3"/>
+  <text class="s m" x="865" y="151" text-anchor="middle" style="font-weight:700">zombie</text>
+  <line x1="865" y1="112" x2="865" y2="130" stroke="var(--muted)" stroke-dasharray="3 3"/>
+  <line class="arr" x1="865" y1="162" x2="865" y2="196" marker-end="url(#ah)"/>
+  <text class="s" x="865" y="214" text-anchor="middle" style="font-weight:700">부모의 <tspan class="m">wait()</tspan></text>
+  <text class="s" x="865" y="232" text-anchor="middle">PCB 회수</text>
+
+  <!-- ready -->
+  <rect x="200" y="190" width="200" height="76" rx="14" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="t" x="300" y="224" text-anchor="middle" style="fill:var(--core-ink)">준비</text>
+  <text class="s m" x="300" y="246" text-anchor="middle">ready</text>
+
+  <!-- running -->
+  <rect x="560" y="190" width="200" height="76" rx="14" fill="var(--core)"/>
+  <text class="t" x="660" y="224" text-anchor="middle" style="fill:var(--bg)">실행</text>
+  <text class="s m" x="660" y="246" text-anchor="middle" style="fill:var(--bg)">running</text>
+
+  <!-- waiting -->
+  <rect x="380" y="340" width="200" height="76" rx="14" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.6"/>
+  <text class="t" x="480" y="374" text-anchor="middle" style="fill:var(--hw-ink)">대기</text>
+  <text class="s m" x="480" y="396" text-anchor="middle">waiting · blocked</text>
+
+  <!-- new -> ready -->
+  <path class="arr" d="M222 75 H300 V186" marker-end="url(#ah)"/>
+  <text class="l" x="312" y="130">승인</text>
+  <text class="s m" x="312" y="148">admitted</text>
+
+  <!-- running -> terminated -->
+  <path class="arr" d="M660 188 V75 H776" marker-end="url(#ah)"/>
+  <text class="l" x="672" y="130">프로세스 끝</text>
+  <text class="s m" x="672" y="148">exit()</text>
+
+  <!-- ready -> running -->
+  <line x1="402" y1="210" x2="556" y2="210" stroke="var(--core)" stroke-width="2" marker-end="url(#ah-core)"/>
+  <text class="l" x="480" y="196" text-anchor="middle" style="fill:var(--core)">디스패치</text>
+  <!-- running -> ready -->
+  <line x1="558" y1="248" x2="404" y2="248" stroke="var(--hw)" stroke-width="2" marker-end="url(#ah-hw)"/>
+  <text class="l" x="480" y="272" text-anchor="middle" style="fill:var(--hw)">타이머 인터럽트</text>
+
+  <!-- running -> waiting -->
+  <path d="M690 268 V378 H584" fill="none" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+  <text class="l" x="702" y="320">입출력 · 이벤트 대기</text>
+  <text class="s m" x="702" y="338">read() · wait()</text>
+
+  <!-- waiting -> ready -->
+  <path d="M376 378 H270 V270" fill="none" stroke="var(--ret)" stroke-width="1.8" marker-end="url(#ah-ret)"/>
+  <text class="l" x="258" y="320" text-anchor="end" style="fill:var(--ret)">완료</text>
+  <text class="s m" x="258" y="338" text-anchor="end">I/O done</text>
+</svg>
+</figure>
+</body>
+</html>

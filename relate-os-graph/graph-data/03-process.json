@@ -1,0 +1,106 @@
+{
+  "topic": "process",
+  "session": {
+    "id": "2026-11-23-03",
+    "date": "2026-11-23",
+    "summary": "3단원 프로세스. 프로그램과 프로세스의 차이와 메모리 구조(코드·데이터·힙·스택), 5상태 전이와 준비 큐, PCB와 문맥 교환(두 번의 저장, 직접·간접 비용), 유닉스 프로세스 API(fork·exec·wait·exit, 좀비·고아), IPC(공유 메모리·메시지 전달·파이프)를 정리했다. OSTEP 4·5·6장, UIC 강의 노트, man7 fork(2)·wait(2), 위키백과 Context switch를 참고했다."
+  },
+  "concepts": [
+    {"slug": "program", "name": "프로그램", "level": 1, "summary": "디스크에 실행 파일 형태로 저장된 명령어와 정적 데이터의 묶음. 스스로는 실행되지 않는 정적인 존재다"},
+    {"slug": "process", "name": "프로세스", "level": 1, "summary": "실행 중인 프로그램. 주소 공간(메모리), 레지스터(PC·SP 포함), 열린 파일 같은 입출력 정보로 이루어진 운영체제의 CPU 가상화 단위"},
+    {"slug": "process-memory-layout", "name": "프로세스 메모리 구조", "level": 1, "summary": "프로세스 주소 공간을 코드(text)·데이터·힙·스택으로 나눈 배치. 힙과 스택은 빈 공간의 양 끝에서 서로를 향해 자란다"},
+    {"slug": "pid", "name": "프로세스 ID", "level": 1, "summary": "운영체제가 프로세스마다 붙이는 고유 번호(PID). kill이나 wait처럼 특정 프로세스를 가리킬 때 쓴다"},
+    {"slug": "process-state", "name": "프로세스 상태", "level": 1, "summary": "프로세스가 생애 동안 거치는 생성·준비·실행·대기·종료 상태와 그 사이의 전이(디스패치, 타이머 인터럽트, 입출력 요청·완료, exit)"},
+    {"slug": "ready-queue", "name": "준비 큐", "level": 2, "summary": "CPU만 받으면 바로 실행할 수 있는 준비 상태 프로세스들이 줄 서 있는 큐. 스케줄러가 여기서 다음 프로세스를 고른다"},
+    {"slug": "pcb", "name": "프로세스 제어 블록", "level": 2, "summary": "커널이 프로세스마다 두는 자료 구조(PCB, process descriptor). 상태, PID, 레지스터와 PC, 스케줄링·메모리·회계·입출력 정보를 담고 프로세스 목록으로 관리된다"},
+    {"slug": "context-switch", "name": "문맥 교환", "level": 2, "summary": "실행 중인 프로세스의 레지스터 상태를 저장하고 다른 프로세스의 저장된 상태를 복원해 CPU를 넘기는 저수준 메커니즘. 하드웨어가 커널 스택에, 운영체제가 PCB에 두 번 저장한다"},
+    {"slug": "context-switch-cost", "name": "문맥 교환 비용", "level": 3, "summary": "문맥 교환 동안 낭비되는 CPU 시간. 레지스터 저장·복원과 메모리 맵 교체 같은 직접 비용과, TLB 비우기와 캐시 공유로 생기는 간접 비용이 있다"},
+    {"slug": "fork", "name": "fork", "level": 2, "summary": "호출한 프로세스를 거의 그대로 복제해 자식 프로세스를 만드는 유닉스 시스템 콜. 부모에게는 자식 PID를, 자식에게는 0을 돌려준다"},
+    {"slug": "exec", "name": "exec", "level": 2, "summary": "현재 프로세스의 코드·데이터를 새 프로그램으로 덮어쓰고 힙·스택을 초기화하는 시스템 콜 계열. 새 프로세스를 만들지 않으며(PID 유지) 성공하면 돌아오지 않는다"},
+    {"slug": "wait", "name": "wait", "level": 2, "summary": "부모가 자식 프로세스의 종료를 기다리고 종료 상태를 받아 가는 시스템 콜(waitpid 포함). 이 호출로 좀비가 회수된다"},
+    {"slug": "exit", "name": "exit", "level": 2, "summary": "프로세스를 끝내고 부모가 읽을 종료 상태 값을 남기는 호출. 보통 성공이면 0, 실패면 0이 아닌 값을 쓴다"},
+    {"slug": "zombie-process", "name": "좀비 프로세스", "level": 2, "summary": "실행은 끝났지만 부모가 아직 wait하지 않아 PID·종료 상태 등이 프로세스 표에 남아 있는 프로세스. 쌓이면 새 프로세스를 만들 수 없다"},
+    {"slug": "orphan-process", "name": "고아 프로세스", "level": 2, "summary": "부모가 먼저 종료된 채 실행 중인 프로세스. 유닉스에서는 init(또는 subreaper)이 새 부모가 된다"},
+    {"slug": "ipc", "name": "프로세스 간 통신", "level": 2, "summary": "주소 공간이 분리된 프로세스들이 데이터를 주고받도록 운영체제가 제공하는 메커니즘(IPC). 공유 메모리와 메시지 전달 두 모델이 있다"},
+    {"slug": "shared-memory", "name": "공유 메모리", "level": 2, "summary": "같은 메모리 영역을 여러 프로세스의 주소 공간에 붙이는 IPC. 설정 후에는 시스템 콜 없이 메모리 속도로 통신하지만 동시 접근은 직접 조율해야 한다"},
+    {"slug": "message-passing", "name": "메시지 전달", "level": 2, "summary": "커널을 거쳐 send/receive로 데이터를 주고받는 IPC. 메시지마다 시스템 콜이 들어 느리지만 쓰기 간단하고 여러 컴퓨터 사이에서도 동작한다"},
+    {"slug": "pipe", "name": "파이프", "level": 2, "summary": "커널 안의 큐로 한 방향 바이트 통로를 만드는 유닉스 IPC. pipe()가 읽기·쓰기 두 fd를 돌려주고, 보통 fork로 자식에게 물려줘 쓴다"}
+  ],
+  "prerequisites": [
+    {"from": "program", "to": "process"},
+    {"from": "virtualization", "to": "process"},
+    {"from": "process", "to": "process-memory-layout"},
+    {"from": "process", "to": "pid"},
+    {"from": "process", "to": "process-state"},
+    {"from": "process-state", "to": "ready-queue"},
+    {"from": "process-state", "to": "pcb"},
+    {"from": "pid", "to": "pcb"},
+    {"from": "pcb", "to": "context-switch"},
+    {"from": "timer-interrupt", "to": "context-switch"},
+    {"from": "kernel-mode", "to": "context-switch"},
+    {"from": "trap", "to": "context-switch"},
+    {"from": "context-switch", "to": "context-switch-cost"},
+    {"from": "context-switch", "to": "cpu-scheduler"},
+    {"from": "system-call", "to": "fork"},
+    {"from": "system-call", "to": "exec"},
+    {"from": "system-call", "to": "wait"},
+    {"from": "pid", "to": "fork"},
+    {"from": "process-memory-layout", "to": "exec"},
+    {"from": "fork", "to": "exec"},
+    {"from": "fork", "to": "wait"},
+    {"from": "fork", "to": "copy-on-write"},
+    {"from": "exit", "to": "zombie-process"},
+    {"from": "wait", "to": "zombie-process"},
+    {"from": "exit", "to": "orphan-process"},
+    {"from": "process", "to": "ipc"},
+    {"from": "process", "to": "thread"},
+    {"from": "ipc", "to": "shared-memory"},
+    {"from": "ipc", "to": "message-passing"},
+    {"from": "ipc", "to": "pipe"},
+    {"from": "system-call", "to": "message-passing"},
+    {"from": "fork", "to": "pipe"}
+  ],
+  "confusedWith": [
+    {"a": "program", "b": "process", "note": "프로그램은 디스크의 정적인 실행 파일이고, 프로세스는 메모리·레지스터·열린 파일을 가진 실행 중인 인스턴스다. 한 프로그램으로 여러 프로세스를 만들 수 있다"},
+    {"a": "fork", "b": "exec", "note": "fork는 같은 프로그램을 도는 프로세스를 하나 더 만들고, exec는 프로세스 수는 그대로 두고(PID 유지) 실행할 프로그램을 바꾼다"},
+    {"a": "zombie-process", "b": "orphan-process", "note": "좀비는 자식이 끝났는데 부모가 wait하지 않은 것, 고아는 자식이 살아 있는데 부모가 먼저 끝난 것이다. 고아는 init이 입양한다"},
+    {"a": "shared-memory", "b": "message-passing", "note": "공유 메모리는 설정 후 커널을 거치지 않아 빠르지만 동기화를 직접 해야 하고, 메시지 전달은 메시지마다 시스템 콜이 들어 느리지만 간단하다"},
+    {"a": "context-switch", "b": "trap", "note": "트랩(모드 전환)은 같은 프로세스가 사용자 모드에서 커널 모드로 들어가는 것이고, 문맥 교환은 CPU를 쓰는 프로세스 자체가 바뀌는 것이다. 모드 전환만으로는 문맥 교환이 아니다"}
+  ],
+  "questions": [
+    {"id": "2026-11-23-03-q1", "text": "fork()는 한 번 불렀는데 왜 두 번 돌아오며, 반환값은 어떻게 다른가?", "answered": true, "answer": "fork가 호출한 프로세스를 복제하므로 부모와 자식 두 프로세스가 모두 fork에서 돌아온다. 부모에게는 자식의 PID, 자식에게는 0을 돌려줘 코드에서 둘을 구분할 수 있다. 누가 먼저 실행될지는 스케줄러가 정한다.", "about": ["fork", "pid"]},
+    {"id": "2026-11-23-03-q2", "text": "문맥 교환 때 레지스터는 누가, 어디에 저장하는가?", "answered": true, "answer": "두 번 저장된다. 타이머 인터럽트가 오면 하드웨어가 사용자 레지스터를 그 프로세스의 커널 스택에 저장하고, 운영체제가 교체를 결정하면 switch 루틴이 커널 레지스터를 그 프로세스의 PCB(프로세스 구조체)에 저장한 뒤 새 프로세스의 PCB에서 복원하고 커널 스택을 바꾼다.", "about": ["context-switch", "pcb"]},
+    {"id": "2026-11-23-03-q3", "text": "유닉스는 왜 프로세스 생성을 fork와 exec 두 단계로 나눴는가?", "answered": true, "answer": "셸이 fork와 exec 사이에 코드를 넣을 수 있게 하려는 것이다. 예를 들어 자식이 exec 전에 표준 출력을 닫고 파일을 열면 실행할 프로그램을 고치지 않고도 출력 리다이렉션이 된다. 파이프도 같은 방식으로 만든다.", "about": ["fork", "exec"]},
+    {"id": "2026-11-23-03-q4", "text": "좀비 프로세스는 왜 생기고 어떻게 사라지는가?", "answered": true, "answer": "자식이 끝난 뒤 부모가 종료 상태를 읽을 수 있도록 커널이 PID·종료 상태·자원 사용량을 프로세스 표에 남겨 두기 때문이다. 부모가 wait하면 회수되고, 부모가 먼저 끝나면 init(또는 subreaper)이 입양해 자동으로 wait한다.", "about": ["zombie-process", "wait"]},
+    {"id": "2026-11-23-03-q5", "text": "TLB에 ASID/PCID 태그가 있는 현대 CPU에서 리눅스는 프로세스 문맥 교환 때 TLB를 정말 비우는가, 아니면 태그로 비우기를 피하는가?", "answered": false, "answer": null, "about": ["context-switch-cost"]},
+    {"id": "2026-11-23-03-q6", "text": "동기화 비용까지 포함하면 어느 정도 데이터 크기·빈도에서 공유 메모리와 메시지 전달의 속도가 뒤집히는가?", "answered": false, "answer": null, "about": ["shared-memory", "message-passing"]}
+  ],
+  "examples": [
+    {"id": "process-ex1", "concept": "process", "kind": "analogy", "body": "레시피와 요리: 프로그램은 책장에 꽂힌 레시피고, 프로세스는 그 레시피로 지금 요리하는 중인 상황이다. 같은 레시피로 두 사람이 동시에 요리할 수 있듯 한 프로그램으로 여러 프로세스를 만들 수 있다."},
+    {"id": "context-switch-ex1", "concept": "context-switch", "kind": "analogy", "body": "책갈피: 여러 책을 번갈아 읽는 사람은 책을 덮기 전에 책갈피(PCB)를 끼워 두고, 다음 책은 그 책의 책갈피 위치부터 읽는다."},
+    {"id": "fork-ex1", "concept": "fork", "kind": "code", "body": "int rc = fork();\nif (rc < 0) {\n    exit(1);                       // 실패\n} else if (rc == 0) {              // 자식\n    char *args[] = {\"wc\", \"p3.c\", NULL};\n    execvp(args[0], args);         // 성공하면 돌아오지 않는다\n} else {                           // 부모: rc == 자식 PID\n    int done = wait(NULL);         // 자식이 끝날 때까지 대기\n    printf(\"child %d finished\\n\", done);\n}"},
+    {"id": "zombie-process-ex1", "concept": "zombie-process", "kind": "code", "body": "#include <stdlib.h>\n#include <unistd.h>\nint main(void) {\n    if (fork() == 0)\n        exit(0);       // 자식 종료 → 좀비\n    sleep(30);         // 이 30초 동안 자식은 좀비로 남는다\n    return 0;          // 부모가 끝나면 init이 좀비를 회수\n}"},
+    {"id": "pipe-ex1", "concept": "pipe", "kind": "code", "body": "int fd[2];\npipe(fd);                         // fd[0] 읽기, fd[1] 쓰기\nif (fork() == 0) {                // 자식\n    close(fd[1]);\n    char buf[32] = {0};\n    read(fd[0], buf, sizeof buf - 1);\n    printf(\"child got: %s\\n\", buf);\n    return 0;\n}\nclose(fd[0]);                     // 부모\nwrite(fd[1], \"hello\", 5);\nclose(fd[1]);\nwait(NULL);"}
+  ],
+  "sources": [
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-intro.pdf", "title": "OSTEP Ch.4 The Abstraction: The Process", "kind": "book", "describes": ["program", "process", "process-memory-layout", "process-state", "pcb", "zombie-process", "exit"]},
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-api.pdf", "title": "OSTEP Ch.5 Interlude: Process API", "kind": "book", "describes": ["pid", "fork", "exec", "wait", "pipe"]},
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf", "title": "OSTEP Ch.6 Mechanism: Limited Direct Execution", "kind": "book", "describes": ["context-switch", "context-switch-cost", "pcb", "timer-interrupt"]},
+    {"url": "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/3_Processes.html", "title": "UIC CS 385 Course Notes: Processes", "kind": "doc", "describes": ["process", "process-memory-layout", "process-state", "pcb", "context-switch", "context-switch-cost", "ipc", "shared-memory", "message-passing", "pipe", "orphan-process", "exit"]},
+    {"url": "https://man7.org/linux/man-pages/man2/fork.2.html", "title": "fork(2) - Linux manual page", "kind": "doc", "describes": ["fork", "pid", "copy-on-write"]},
+    {"url": "https://man7.org/linux/man-pages/man2/wait.2.html", "title": "wait(2) - Linux manual page", "kind": "doc", "describes": ["wait", "zombie-process", "orphan-process"]},
+    {"url": "https://en.wikipedia.org/wiki/Context_switch", "title": "Context switch - Wikipedia", "kind": "doc", "describes": ["context-switch", "context-switch-cost", "pcb", "ready-queue"]}
+  ],
+  "visuals": [
+    {"path": "posts/assets/process/process-memory.png", "type": "diagram", "caption": "디스크의 프로그램(코드·데이터)이 적재되어 코드·데이터·힙·스택 주소 공간과 레지스터·열린 파일을 가진 프로세스가 되는 모습", "depicts": ["program", "process", "process-memory-layout"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-intro.pdf", "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/3_Processes.html"]},
+    {"path": "posts/assets/process/process-states.png", "type": "diagram", "caption": "생성·준비·실행·대기·종료 상태 전이도와 종료 후 좀비가 부모의 wait()로 회수되는 흐름", "depicts": ["process-state", "ready-queue", "zombie-process", "wait", "exit"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-intro.pdf", "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/3_Processes.html"]},
+    {"path": "posts/assets/process/context-switch.png", "type": "diagram", "caption": "타이머 인터럽트 → 하드웨어의 커널 스택 저장 → switch()의 PCB 저장·복원 → return-from-trap으로 A에서 B로 바뀌는 문맥 교환", "depicts": ["context-switch", "pcb", "context-switch-cost", "timer-interrupt", "return-from-trap"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-mechanisms.pdf", "https://en.wikipedia.org/wiki/Context_switch"]},
+    {"path": "posts/assets/process/fork-exec-wait.png", "type": "diagram", "caption": "셸(부모)이 fork()로 자식을 만들고 wait()로 기다리는 동안 자식이 exec로 wc가 되어 exit하고 좀비를 거쳐 회수되는 타임라인", "depicts": ["fork", "exec", "wait", "exit", "zombie-process", "pid"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-api.pdf", "https://man7.org/linux/man-pages/man2/wait.2.html"]}
+  ],
+  "post": {
+    "slug": "process",
+    "title": "프로세스: 실행 중인 프로그램의 구조, 상태, 그리고 일생",
+    "path": "posts/2026-11-23-process.md",
+    "explains": ["program", "process", "process-memory-layout", "pid", "process-state", "ready-queue", "pcb", "context-switch", "context-switch-cost", "fork", "exec", "wait", "exit", "zombie-process", "orphan-process", "ipc", "shared-memory", "message-passing", "pipe"]
+  }
+}

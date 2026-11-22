@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fork Exec Wait</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tl { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 376" role="img" aria-label="셸(부모)이 fork()로 자식을 만들고 wait()로 기다리는 동안, 자식은 fork()에서 0을 받아 execvp로 wc 프로그램으로 바뀌어 실행하고 exit(0)으로 끝난다. 자식은 좀비로 남았다가 부모의 wait()가 종료 상태를 받아 가면 회수된다">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+  </defs>
+
+  <!-- lanes -->
+  <rect x="40" y="30" width="920" height="120" rx="16" fill="var(--lane)"/>
+  <text class="t" x="58" y="86">부모</text>
+  <text class="s m" x="58" y="106">pid 100</text>
+  <rect x="40" y="230" width="920" height="120" rx="16" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="58" y="286" style="fill:var(--core-ink)">자식</text>
+  <text class="s m" x="58" y="306">pid 101</text>
+
+  <!-- parent: shell -->
+  <rect x="140" y="62" width="110" height="56" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <g class="ico" transform="translate(154 78)" style="stroke-width:1.8">
+    <rect x="0" y="0" width="26" height="22" rx="3"/><path d="M5 7 L10 11 L5 15"/><line x1="13" y1="16" x2="20" y2="16"/>
+  </g>
+  <text class="t" x="190" y="96">셸</text>
+  <text class="s m" x="211" y="96">bash</text>
+
+  <!-- fork point -->
+  <line class="tl" x1="252" y1="90" x2="290" y2="90"/>
+  <circle cx="300" cy="90" r="9" fill="var(--core)"/>
+  <text class="m" x="300" y="56" text-anchor="middle" font-size="13" font-weight="700" fill="var(--core)">fork()</text>
+  <line class="tl" x1="309" y1="90" x2="318" y2="90"/>
+
+  <!-- parent rc -->
+  <rect x="320" y="76" width="84" height="28" rx="14" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="s m" x="362" y="95" text-anchor="middle" style="fill:var(--ink);font-weight:700">rc=101</text>
+  <line class="tl" x1="406" y1="90" x2="418" y2="90"/>
+
+  <!-- parent wait (blocked) -->
+  <rect x="420" y="62" width="320" height="56" rx="12" fill="var(--hw-bg)" stroke="var(--hw)" stroke-dasharray="6 4"/>
+  <text class="m" x="572" y="96" text-anchor="end" font-size="14" font-weight="700" fill="var(--hw-ink)">wait()</text>
+  <text class="t" x="584" y="96" style="fill:var(--hw-ink)">대기</text>
+  <line class="tl" x1="742" y1="90" x2="758" y2="90"/>
+
+  <!-- wait returns -->
+  <rect x="760" y="76" width="84" height="28" rx="14" fill="var(--card)" stroke="var(--ret)"/>
+  <text class="s m" x="802" y="95" text-anchor="middle" style="fill:var(--ret);font-weight:700">rc=101</text>
+  <line class="tl" x1="846" y1="90" x2="862" y2="90" marker-end="url(#ah)"/>
+  <rect x="866" y="62" width="84" height="56" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t" x="908" y="96" text-anchor="middle">프롬프트</text>
+
+  <!-- branch to child -->
+  <path class="tl" d="M300 99 V290 H318"/>
+
+  <!-- child rc -->
+  <rect x="320" y="276" width="84" height="28" rx="14" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="s m" x="362" y="295" text-anchor="middle" style="fill:var(--ink);font-weight:700">rc=0</text>
+  <line class="tl" x1="406" y1="290" x2="418" y2="290"/>
+
+  <!-- exec -->
+  <rect x="420" y="258" width="170" height="64" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="m" x="505" y="284" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--core-ink)">execvp("wc")</text>
+  <text class="s" x="505" y="306" text-anchor="middle">주소 공간 교체</text>
+  <line class="tl" x1="592" y1="290" x2="606" y2="290"/>
+
+  <!-- wc runs -->
+  <rect x="608" y="258" width="104" height="64" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t" x="660" y="286" text-anchor="middle">wc 실행</text>
+  <text class="s" x="660" y="306" text-anchor="middle">같은 <tspan class="m">pid</tspan></text>
+  <line class="tl" x1="714" y1="290" x2="760" y2="290"/>
+  <circle cx="732" cy="290" r="7" fill="var(--muted)"/>
+  <text class="s m" x="732" y="340" text-anchor="middle" style="fill:var(--ink);font-weight:700">exit(0)</text>
+  <line x1="732" y1="299" x2="732" y2="324" stroke="var(--muted)" stroke-dasharray="3 3"/>
+
+  <!-- zombie -->
+  <rect x="762" y="266" width="84" height="48" rx="12" fill="var(--card)" stroke="var(--muted)" stroke-dasharray="5 4"/>
+  <text class="t" x="804" y="287" text-anchor="middle" style="fill:var(--muted)">좀비</text>
+  <text class="s m" x="804" y="304" text-anchor="middle">zombie</text>
+  <line class="tl" x1="848" y1="290" x2="864" y2="290"/>
+  <rect x="866" y="266" width="84" height="48" rx="12" fill="var(--ret-bg)" stroke="var(--ret)"/>
+  <text class="t" x="908" y="287" text-anchor="middle" style="fill:var(--ret)">회수</text>
+  <text class="s m" x="908" y="304" text-anchor="middle">reaped</text>
+
+  <!-- exit status to parent -->
+  <line x1="804" y1="264" x2="804" y2="108" stroke="var(--ret)" stroke-width="2" marker-end="url(#ah-ret)"/>
+  <text class="s" x="794" y="186" text-anchor="end" style="fill:var(--ret);font-weight:700">종료 상태</text>
+  <text class="s m" x="794" y="204" text-anchor="end">status = 0</text>
+</svg>
+</figure>
+</body>
+</html>

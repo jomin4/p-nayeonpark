@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context Switch</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .f { fill: var(--ink); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 560" role="img" aria-label="문맥 교환: 타이머 인터럽트가 오면 하드웨어가 A의 레지스터를 A의 커널 스택에 저장하고, 운영체제의 switch()가 A의 레지스터를 PCB(A)에 저장하고 B의 레지스터를 PCB(B)에서 복원한 뒤 B의 커널 스택으로 바꾸며, return-from-trap으로 프로세스 B가 실행된다">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+  </defs>
+
+  <!-- lanes -->
+  <rect x="40" y="20" width="920" height="110" rx="16" fill="var(--lane)"/>
+  <text class="t" x="58" y="80">사용자 모드</text>
+  <rect x="40" y="160" width="920" height="170" rx="16" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="58" y="250" style="fill:var(--core-ink)">커널 모드</text>
+  <rect x="40" y="360" width="920" height="180" rx="16" fill="var(--lane)"/>
+  <text class="t" x="58" y="456">커널 메모리</text>
+
+  <!-- process A / B -->
+  <rect x="180" y="47" width="160" height="56" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t" x="260" y="80" text-anchor="middle">프로세스 A</text>
+  <rect x="760" y="47" width="160" height="56" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t" x="840" y="80" text-anchor="middle">프로세스 B</text>
+  <rect x="560" y="62" width="176" height="26" rx="13" fill="var(--card)" stroke="var(--muted)" stroke-dasharray="4 3"/>
+  <text class="s" x="648" y="80" text-anchor="middle" style="font-weight:700">캐시 · TLB 다시 채움</text>
+
+  <!-- timer interrupt -->
+  <line x1="260" y1="105" x2="260" y2="196" stroke="var(--hw)" stroke-width="2.2" marker-end="url(#ah-hw)"/>
+  <circle cx="260" cy="145" r="15" fill="var(--hw)"/>
+  <path d="M263 134 L254 147 H261 L257 157 L267 143 H260 Z" fill="#fff"/>
+  <text class="s" x="284" y="150" style="fill:var(--hw);font-weight:700">타이머 인터럽트</text>
+
+  <!-- step 1: hw save -->
+  <rect x="170" y="200" width="180" height="76" rx="12" fill="var(--hw-bg)" stroke="var(--hw)"/>
+  <text class="t" x="260" y="230" text-anchor="middle" style="fill:var(--hw-ink)">레지스터 저장</text>
+  <text class="s m" x="260" y="254" text-anchor="middle">regs(A) → k-stack(A)</text>
+  <line x1="352" y1="238" x2="386" y2="238" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+
+  <!-- step 2: os switch -->
+  <rect x="390" y="178" width="260" height="124" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="m" x="520" y="206" text-anchor="middle" font-size="15" font-weight="700" fill="var(--core-ink)">switch()</text>
+  <text class="f m" x="520" y="234" text-anchor="middle">regs(A) → PCB(A)</text>
+  <text class="f m" x="520" y="258" text-anchor="middle">regs(B) ← PCB(B)</text>
+  <text class="f" x="520" y="284" text-anchor="middle"><tspan class="m">k-stack(B)</tspan>로 전환</text>
+  <line x1="652" y1="238" x2="676" y2="238" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+
+  <!-- step 3: return-from-trap -->
+  <rect x="680" y="200" width="220" height="76" rx="12" fill="var(--hw-bg)" stroke="var(--hw)"/>
+  <text class="m" x="790" y="230" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw-ink)">return-from-trap</text>
+  <text class="s m" x="790" y="254" text-anchor="middle">regs(B) ← k-stack(B)</text>
+  <line x1="840" y1="198" x2="840" y2="108" stroke="var(--ret)" stroke-width="2.2" marker-end="url(#ah-ret)"/>
+  <text class="s" x="852" y="150" style="fill:var(--ret);font-weight:700">B 실행 재개</text>
+
+  <!-- save / restore arrows -->
+  <line x1="450" y1="304" x2="450" y2="372" stroke="var(--core)" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ah-core)"/>
+  <text class="s" x="440" y="348" text-anchor="end" style="fill:var(--core);font-weight:700">저장</text>
+  <line x1="590" y1="372" x2="590" y2="306" stroke="var(--core)" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ah-core)"/>
+  <text class="s" x="600" y="348" style="fill:var(--core);font-weight:700">복원</text>
+
+  <!-- PCB A -->
+  <rect x="330" y="376" width="200" height="150" rx="12" fill="var(--card)" stroke="var(--core)"/>
+  <rect x="330" y="376" width="200" height="32" rx="12" fill="var(--core-bg)"/>
+  <rect x="330" y="396" width="200" height="12" fill="var(--core-bg)"/>
+  <text class="m" x="346" y="398" font-size="13.5" font-weight="700" fill="var(--core-ink)">PCB(A)</text>
+  <text class="s m" x="514" y="398" text-anchor="end">pid 100</text>
+  <text class="f" x="346" y="430">상태</text><text class="f" x="514" y="430" text-anchor="end" style="font-weight:700">실행 → 준비</text>
+  <text class="f" x="346" y="452">PC · SP</text><text class="s m" x="514" y="452" text-anchor="end">eip · esp</text>
+  <text class="f" x="346" y="474">레지스터</text><text class="s m" x="514" y="474" text-anchor="end">ebx ecx …</text>
+  <text class="f" x="346" y="496">메모리 정보</text><text class="s m" x="514" y="496" text-anchor="end">page table</text>
+  <text class="f" x="346" y="518">열린 파일</text><text class="s m" x="514" y="518" text-anchor="end">fd 0 1 2</text>
+
+  <!-- PCB B -->
+  <rect x="550" y="376" width="200" height="150" rx="12" fill="var(--card)" stroke="var(--core)"/>
+  <rect x="550" y="376" width="200" height="32" rx="12" fill="var(--core-bg)"/>
+  <rect x="550" y="396" width="200" height="12" fill="var(--core-bg)"/>
+  <text class="m" x="566" y="398" font-size="13.5" font-weight="700" fill="var(--core-ink)">PCB(B)</text>
+  <text class="s m" x="734" y="398" text-anchor="end">pid 200</text>
+  <text class="f" x="566" y="430">상태</text><text class="f" x="734" y="430" text-anchor="end" style="font-weight:700">준비 → 실행</text>
+  <text class="f" x="566" y="452">PC · SP</text><text class="s m" x="734" y="452" text-anchor="end">eip · esp</text>
+  <text class="f" x="566" y="474">레지스터</text><text class="s m" x="734" y="474" text-anchor="end">ebx ecx …</text>
+  <text class="f" x="566" y="496">메모리 정보</text><text class="s m" x="734" y="496" text-anchor="end">page table</text>
+  <text class="f" x="566" y="518">열린 파일</text><text class="s m" x="734" y="518" text-anchor="end">fd 0 1 2</text>
+
+  <!-- legend -->
+  <rect x="790" y="420" width="16" height="16" rx="4" fill="var(--hw-bg)" stroke="var(--hw)"/>
+  <text class="s" x="814" y="433" style="font-weight:700">하드웨어가 수행</text>
+  <rect x="790" y="452" width="16" height="16" rx="4" fill="var(--card)" stroke="var(--core)"/>
+  <text class="s" x="814" y="465" style="font-weight:700">운영체제가 수행</text>
+</svg>
+</figure>
+</body>
+</html>
