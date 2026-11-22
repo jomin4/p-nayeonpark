@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Call Flow</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --trap: #534AB7; --num: #BA7517; --num-bg: #FAEEDA; --num-ink: #633806; --ret: #0F6E56;
+    --hw: #5F5E5A; --hw-bg: #E8E6DE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --trap: #AFA9EC; --num: #EF9F27; --num-bg: #412402; --num-ink: #FAEEDA; --ret: #5DCAA5;
+      --hw: #B4B2A9; --hw-bg: #2C2C2A;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 16px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 13px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .b text { font-size: 13px; font-weight: 700; fill: #fff; }
+  .row { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12.5px; fill: var(--ink); }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 560" role="img" aria-label="write 호출이 libc 래퍼에서 레지스터에 번호와 인자를 담고 syscall 명령어로 커널에 들어가, 시스템 콜 테이블에서 sys_write를 찾아 실행한 뒤 반환값을 들고 돌아오는 흐름">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="a-trap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--trap)"/></marker>
+    <marker id="a-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+  </defs>
+
+  <!-- lanes -->
+  <rect x="30" y="20" width="940" height="190" rx="16" fill="var(--lane)"/>
+  <text class="t" x="50" y="50">사용자 모드</text>
+  <rect x="30" y="240" width="940" height="240" rx="16" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="50" y="272" style="fill:var(--core-ink)">커널 모드</text>
+  <line x1="30" y1="225" x2="970" y2="225" stroke="var(--core)" stroke-width="1.6" stroke-dasharray="6 6"/>
+
+  <!-- app -->
+  <rect x="40" y="75" width="190" height="90" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <g class="ico" stroke="var(--ink)" transform="translate(58 88)"><rect x="0" y="0" width="28" height="28" rx="4"/><path d="M6 10l4 4-4 4M14 19h8"/></g>
+  <text class="t" x="98" y="108">프로그램</text>
+  <text class="m" x="58" y="146" font-size="12" fill="var(--muted)">write(1,"hi\n",3)</text>
+
+  <!-- libc wrapper -->
+  <rect x="280" y="60" width="320" height="120" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t" x="300" y="88">libc 래퍼</text>
+  <text class="s m" x="582" y="88" text-anchor="end">glibc</text>
+  <text class="s" x="359" y="118" text-anchor="middle" style="font-weight:700;fill:var(--num)">번호</text>
+  <text class="s" x="499" y="118" text-anchor="middle" style="font-weight:700">인자</text>
+  <rect x="318" y="128" width="82" height="30" rx="8" fill="var(--num-bg)" stroke="var(--num)"/>
+  <text class="m" x="359" y="148" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--num-ink)">rax=1</text>
+  <rect x="408" y="128" width="56" height="30" rx="8" fill="var(--hw-bg)"/>
+  <text class="m" x="436" y="148" text-anchor="middle" font-size="12" fill="var(--ink)">rdi=1</text>
+  <rect x="470" y="128" width="62" height="30" rx="8" fill="var(--hw-bg)"/>
+  <text class="m" x="501" y="148" text-anchor="middle" font-size="12" fill="var(--ink)">rsi=buf</text>
+  <rect x="538" y="128" width="56" height="30" rx="8" fill="var(--hw-bg)"/>
+  <text class="m" x="566" y="148" text-anchor="middle" font-size="12" fill="var(--ink)">rdx=3</text>
+
+  <!-- app <-> wrapper -->
+  <line x1="232" y1="102" x2="274" y2="102" stroke="var(--muted)" stroke-width="2" marker-end="url(#a-mut)"/>
+  <line x1="278" y1="140" x2="236" y2="140" stroke="var(--ret)" stroke-width="2" marker-end="url(#a-ret)"/>
+  <text class="m" x="255" y="160" text-anchor="middle" font-size="11" fill="var(--ret)">errno</text>
+
+  <!-- trap down -->
+  <line x1="340" y1="182" x2="340" y2="316" stroke="var(--trap)" stroke-width="2.4" marker-end="url(#a-trap)"/>
+  <rect x="300" y="213" width="80" height="24" rx="12" fill="var(--card)" stroke="var(--trap)"/>
+  <text class="m" x="340" y="230" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--trap)">syscall</text>
+
+  <!-- kernel entry -->
+  <rect x="250" y="320" width="190" height="80" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="t" x="345" y="354" text-anchor="middle" style="fill:var(--core-ink)">커널 진입</text>
+  <text class="s" x="345" y="378" text-anchor="middle">레지스터 저장</text>
+  <line x1="442" y1="360" x2="494" y2="360" stroke="var(--muted)" stroke-width="2" marker-end="url(#a-mut)"/>
+
+  <!-- syscall table -->
+  <rect x="500" y="262" width="220" height="204" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="t" x="610" y="288" text-anchor="middle" style="fill:var(--core-ink)">시스템 콜 테이블</text>
+  <text class="s m" x="610" y="306" text-anchor="middle" font-size="11.5">syscall_64.tbl</text>
+  <rect x="508" y="339" width="204" height="24" rx="6" fill="var(--num-bg)" stroke="var(--num)"/>
+  <g class="row">
+    <text x="540" y="332" text-anchor="end">0</text><text x="552" y="332">read</text><text x="704" y="332" text-anchor="end" fill="var(--muted)">sys_read</text>
+    <text x="540" y="356" text-anchor="end" font-weight="700">1</text><text x="552" y="356" font-weight="700">write</text><text x="704" y="356" text-anchor="end" font-weight="700">sys_write</text>
+    <text x="540" y="380" text-anchor="end">2</text><text x="552" y="380">open</text><text x="704" y="380" text-anchor="end" fill="var(--muted)">sys_open</text>
+    <text x="540" y="404" text-anchor="end">3</text><text x="552" y="404">close</text><text x="704" y="404" text-anchor="end" fill="var(--muted)">sys_close</text>
+    <text x="540" y="426" text-anchor="end" fill="var(--muted)">⋮</text>
+    <text x="540" y="452" text-anchor="end">39</text><text x="552" y="452">getpid</text><text x="704" y="452" text-anchor="end" fill="var(--muted)">sys_getpid</text>
+  </g>
+  <line x1="722" y1="351" x2="774" y2="351" stroke="var(--num)" stroke-width="2.2" marker-end="url(#a-mut)"/>
+
+  <!-- kernel function -->
+  <rect x="780" y="320" width="170" height="80" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="m" x="865" y="354" text-anchor="middle" font-size="15" font-weight="700" fill="var(--core-ink)">sys_write</text>
+  <text class="s" x="865" y="378" text-anchor="middle">커널 함수</text>
+
+  <!-- return -->
+  <path d="M865 318 V120 H606" fill="none" stroke="var(--ret)" stroke-width="2.4" marker-end="url(#a-ret)"/>
+  <rect x="825" y="213" width="80" height="24" rx="12" fill="var(--card)" stroke="var(--ret)"/>
+  <text class="m" x="865" y="230" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--ret)">sysret</text>
+  <text class="m" x="880" y="165" font-size="12.5" font-weight="700" fill="var(--ret)">rax</text>
+
+  <!-- badges -->
+  <g class="b">
+    <circle cx="253" cy="102" r="11" fill="var(--muted)"/><text x="253" y="107" text-anchor="middle" font-size="12">1</text>
+    <circle cx="300" cy="143" r="11" fill="var(--num)"/><text x="300" y="148" text-anchor="middle" font-size="12">2</text>
+    <circle cx="340" cy="280" r="11" fill="var(--trap)"/><text x="340" y="285" text-anchor="middle" font-size="12">3</text>
+    <circle cx="468" cy="360" r="11" fill="var(--muted)"/><text x="468" y="365" text-anchor="middle" font-size="12">4</text>
+    <circle cx="748" cy="351" r="11" fill="var(--num)"/><text x="748" y="356" text-anchor="middle" font-size="12">5</text>
+    <circle cx="865" cy="280" r="11" fill="var(--ret)"/><text x="865" y="285" text-anchor="middle" font-size="12">6</text>
+  </g>
+
+  <!-- legend -->
+  <g class="b">
+    <circle cx="60" cy="520" r="11" fill="var(--muted)"/><text x="60" y="525" text-anchor="middle" font-size="12">1</text>
+    <circle cx="190" cy="520" r="11" fill="var(--num)"/><text x="190" y="525" text-anchor="middle" font-size="12">2</text>
+    <circle cx="345" cy="520" r="11" fill="var(--trap)"/><text x="345" y="525" text-anchor="middle" font-size="12">3</text>
+    <circle cx="470" cy="520" r="11" fill="var(--muted)"/><text x="470" y="525" text-anchor="middle" font-size="12">4</text>
+    <circle cx="620" cy="520" r="11" fill="var(--num)"/><text x="620" y="525" text-anchor="middle" font-size="12">5</text>
+    <circle cx="790" cy="520" r="11" fill="var(--ret)"/><text x="790" y="525" text-anchor="middle" font-size="12">6</text>
+  </g>
+  <g font-size="14" font-weight="700" fill="var(--ink)">
+    <text x="78" y="525">래퍼 호출</text>
+    <text x="208" y="525">번호·인자 설정</text>
+    <text x="363" y="525">트랩</text>
+    <text x="488" y="525">번호로 조회</text>
+    <text x="638" y="525">커널 함수 실행</text>
+    <text x="808" y="525">반환값 들고 복귀</text>
+  </g>
+</svg>
+</figure>
+</body>
+</html>

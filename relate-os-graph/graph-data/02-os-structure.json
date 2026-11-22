@@ -1,0 +1,99 @@
+{
+  "topic": "os-structure",
+  "session": {
+    "id": "2026-11-23-02",
+    "date": "2026-11-23",
+    "summary": "2단원 운영체제 구조. 시스템 콜의 흐름(래퍼 → 번호·인자 레지스터 → 트랩 → 시스템 콜 테이블 → 커널 함수)과 종류, API·libc와의 관계, 매개변수 전달 방식, 커널 구조(모놀리식·모듈·계층형·마이크로커널·하이브리드)와 리눅스·Windows NT·XNU 사례, 리눅스 부팅 순서(BIOS/UEFI → 부트로더 → 커널 초기화 → initramfs → init/systemd)를 정리했다. man7 syscall(2), 커널 문서, 리눅스 시스템 콜 표, 위키백과 5개 문서를 참고했다."
+  },
+  "concepts": [
+    {"slug": "system-call", "name": "시스템 콜", "level": 1, "summary": "프로그램이 커널에 서비스(파일 입출력, 프로세스 생성 등)를 요청하는 인터페이스. 번호와 인자를 레지스터에 넣고 트랩 명령어로 커널 모드에 들어간다"},
+    {"slug": "system-call-types", "name": "시스템 콜의 종류", "level": 1, "summary": "프로세스 제어, 파일 관리, 장치 관리, 정보 유지, 통신, 보호의 여섯 가지 분류 (예: fork, read, ioctl, getpid, pipe, chmod)"},
+    {"slug": "api", "name": "API", "level": 1, "summary": "라이브러리가 함수 형태로 제공하는 프로그래밍 인터페이스. 유닉스 계열은 libc(POSIX), Windows는 Windows API 아래 Native API(ntdll.dll)가 시스템 콜을 부른다"},
+    {"slug": "syscall-wrapper", "name": "시스템 콜 래퍼", "level": 2, "summary": "시스템 콜을 감싼 libc 함수. 인자를 레지스터에 옮기고 번호를 정해 트랩 명령어를 실행하며, 실패하면 errno를 설정하고 -1을 돌려준다. 래퍼가 없으면 syscall()로 직접 부른다"},
+    {"slug": "system-call-number", "name": "시스템 콜 번호", "level": 2, "summary": "커널이 시스템 콜을 구분하는 정수. x86-64 리눅스에서 read는 0, write는 1, getpid는 39이며 <sys/syscall.h>의 SYS_* 상수로 쓴다. 없는 번호는 ENOSYS"},
+    {"slug": "system-call-table", "name": "시스템 콜 테이블", "level": 2, "summary": "시스템 콜 번호를 커널 함수(sys_write 등)에 대응시킨 표. x86-64 리눅스는 arch/x86/entry/syscalls/syscall_64.tbl에 정의하며 아키텍처마다 따로 있다"},
+    {"slug": "system-call-parameter-passing", "name": "시스템 콜 매개변수 전달", "level": 2, "summary": "시스템 콜 인자를 커널에 넘기는 방법. 레지스터(x86-64는 rdi·rsi·rdx·r10·r8·r9로 최대 6개), 구조체 주소(메모리 블록), 스택(MIPS o32의 5~8번째 인자)"},
+    {"slug": "kernel-architecture", "name": "커널 구조", "level": 1, "summary": "운영체제 서비스(파일 시스템, 드라이버, 네트워크)를 커널 공간과 사용자 공간 중 어디에, 어떻게 나눠 둘지에 대한 설계. 모놀리식·계층형·마이크로커널·하이브리드로 나뉜다"},
+    {"slug": "monolithic-kernel", "name": "모놀리식 커널", "level": 2, "summary": "스케줄러, 메모리 관리, 파일 시스템, 드라이버, 네트워크 스택이 모두 커널 모드의 한 주소 공간에서 실행되는 구조. 빠르지만 한 부분의 버그가 커널 전체에 영향을 준다 (Linux, FreeBSD, Solaris)"},
+    {"slug": "layered-kernel", "name": "계층형 구조", "level": 2, "summary": "운영체제를 층으로 쌓고 위층은 아래층만 쓰게 한 구조. Dijkstra 팀의 THE 시스템(1968)이 대표 예로, 아래층부터 하나씩 만들고 시험할 수 있다"},
+    {"slug": "microkernel", "name": "마이크로커널", "level": 2, "summary": "커널에는 주소 공간 관리, 스레드, IPC 같은 최소 기능만 두고 파일 시스템·드라이버·네트워크는 사용자 공간 서버가 맡는 구조. 안정적이지만 IPC와 문맥 교환 비용이 든다 (Mach, L4, MINIX 3, QNX)"},
+    {"slug": "loadable-kernel-module", "name": "적재 가능한 커널 모듈", "level": 2, "summary": "실행 중인 커널에 다시 컴파일하지 않고 올리고 내리는 코드 조각(드라이버, 파일 시스템 등). 커널 공간에서 실행된다. 리눅스는 init_module·finit_module·delete_module 시스템 콜로 다룬다"},
+    {"slug": "hybrid-kernel", "name": "하이브리드 커널", "level": 3, "summary": "마이크로커널을 닮은 구조를 가지되 서비스 대부분을 커널 공간에 두는 커널. Windows NT와 XNU(Mach + BSD)가 예이며, 사실상 모놀리식이라는 비판도 있다"},
+    {"slug": "boot-process", "name": "부팅 과정", "level": 1, "summary": "전원을 켠 뒤 펌웨어 → 부트로더 → 커널 초기화 → initramfs → init(PID 1) 순서로 제어권이 넘어가 운영체제가 실행 가능한 상태가 되는 과정"},
+    {"slug": "bios", "name": "BIOS", "level": 2, "summary": "PC 메인보드의 전통적 펌웨어. POST로 장치를 점검하고 부팅 장치의 MBR(512바이트, 1단계 부트로더와 파티션 표)을 읽어 실행한다"},
+    {"slug": "uefi", "name": "UEFI", "level": 2, "summary": "BIOS를 대신하는 펌웨어 규격. 부트로더를 EFI 응용 프로그램(예: grubx64.efi)으로 실행하며, EFI 부트 스텁으로 커널을 직접 띄우거나 Secure Boot를 쓸 수 있다"},
+    {"slug": "bootloader", "name": "부트로더", "level": 2, "summary": "펌웨어 다음에 실행되어 압축된 커널 이미지(bzImage)와 initramfs를 메모리에 올리고 커널로 제어를 넘기는 프로그램 (GRUB 2, systemd-boot)"},
+    {"slug": "initramfs", "name": "initramfs", "level": 3, "summary": "커널이 처음 올리는 임시 루트 파일 시스템(early user space). 진짜 루트가 있는 저장 장치의 드라이버를 적재하고 루트를 찾은 뒤 pivot_root로 진짜 루트로 바꾼다"},
+    {"slug": "init-process", "name": "init 프로세스", "level": 2, "summary": "커널이 PID 1로 실행하는 첫 사용자 공간 프로세스. 파일 시스템을 마운트하고 서비스를 시작하며 가장 늦게 끝난다. 현재 많은 배포판은 systemd, 예전에는 SysV init을 썼다"}
+  ],
+  "prerequisites": [
+    {"from": "trap", "to": "system-call"},
+    {"from": "dual-mode", "to": "system-call"},
+    {"from": "system-call", "to": "system-call-types"},
+    {"from": "system-call", "to": "syscall-wrapper"},
+    {"from": "api", "to": "syscall-wrapper"},
+    {"from": "system-call", "to": "system-call-number"},
+    {"from": "system-call-number", "to": "system-call-table"},
+    {"from": "trap-table", "to": "system-call-table"},
+    {"from": "system-call", "to": "system-call-parameter-passing"},
+    {"from": "syscall-wrapper", "to": "system-call-parameter-passing"},
+    {"from": "kernel", "to": "kernel-architecture"},
+    {"from": "kernel-architecture", "to": "monolithic-kernel"},
+    {"from": "kernel-architecture", "to": "layered-kernel"},
+    {"from": "kernel-architecture", "to": "microkernel"},
+    {"from": "user-mode", "to": "microkernel"},
+    {"from": "monolithic-kernel", "to": "loadable-kernel-module"},
+    {"from": "monolithic-kernel", "to": "hybrid-kernel"},
+    {"from": "microkernel", "to": "hybrid-kernel"},
+    {"from": "kernel-mode", "to": "boot-process"},
+    {"from": "boot-process", "to": "bios"},
+    {"from": "boot-process", "to": "uefi"},
+    {"from": "bios", "to": "bootloader"},
+    {"from": "uefi", "to": "bootloader"},
+    {"from": "bootloader", "to": "initramfs"},
+    {"from": "initramfs", "to": "init-process"}
+  ],
+  "confusedWith": [
+    {"a": "api", "b": "system-call", "note": "API(libc 함수)는 사용자 공간 라이브러리의 평범한 함수 호출이고, 시스템 콜은 트랩 명령어로 커널 모드에 들어가는 요청이다."},
+    {"a": "syscall-wrapper", "b": "system-call", "note": "래퍼 함수를 부르는 순간은 함수 호출일 뿐이고, 커널 진입은 래퍼 안에서 syscall 같은 트랩 명령어가 실행될 때 일어난다"},
+    {"a": "system-call-table", "b": "trap-table", "note": "트랩 테이블은 하드웨어가 이벤트별 핸들러를 찾는 표, 시스템 콜 테이블은 그 핸들러 안에서 커널이 번호별 함수를 찾는 표다"},
+    {"a": "microkernel", "b": "hybrid-kernel", "note": "하이브리드 커널은 마이크로커널 같은 구조를 갖지만 서비스 대부분이 커널 공간에 있어 마이크로커널의 안정성 이점이 없다"},
+    {"a": "bootloader", "b": "init-process", "note": "부트로더는 커널이 뜨기 전에 커널을 메모리에 올리는 프로그램, init은 커널이 뜬 뒤 처음 실행되는 사용자 프로세스(PID 1)다"}
+  ],
+  "questions": [
+    {"id": "2026-11-23-02-q1", "text": "libc의 write()를 부르는 것과 write 시스템 콜이 실행되는 것은 같은 순간인가?", "answered": true, "answer": "아니다. write() 호출은 평범한 함수 호출이고, 래퍼가 번호(rax=1)와 인자를 레지스터에 넣은 뒤 syscall 명령어를 실행할 때 비로소 커널 모드로 들어간다.", "about": ["syscall-wrapper", "system-call", "api"]},
+    {"id": "2026-11-23-02-q2", "text": "시스템 콜 인자가 레지스터 수보다 많으면 어떻게 넘기는가?", "answered": true, "answer": "리눅스 커널 문서는 인자가 많으면 크기 필드를 둔 구조체에 모아 그 포인터를 넘기라고 권한다(메모리 블록 방식). MIPS o32처럼 5~8번째 인자를 사용자 스택으로 넘기는 아키텍처도 있다.", "about": ["system-call-parameter-passing"]},
+    {"id": "2026-11-23-02-q3", "text": "Windows NT는 왜 마이크로커널이 아니라 하이브리드 커널로 분류되는가?", "answered": true, "answer": "csrss.exe 같은 환경 서브시스템은 사용자 모드 서버로 돌지만, 대부분의 구성 요소가 커널 주소 공간을 공유한다. NT 4.0부터는 창 관리자와 그래픽도 커널 모드로 옮겼다.", "about": ["hybrid-kernel", "microkernel"]},
+    {"id": "2026-11-23-02-q4", "text": "커널이 있는데 왜 initramfs라는 임시 루트가 따로 필요한가?", "answered": true, "answer": "진짜 루트 파일 시스템이 있는 저장 장치를 읽으려면 그 장치의 드라이버가 필요하다. initramfs가 그 드라이버를 적재하고 진짜 루트를 찾은 뒤 pivot_root로 루트를 바꾼다.", "about": ["initramfs", "boot-process"]},
+    {"id": "2026-11-23-02-q5", "text": "같은 리눅스인데 시스템 콜 번호표가 x86-64와 arm64에서 왜 다르게 만들어졌나?", "answered": false, "answer": null, "about": ["system-call-number", "system-call-table"]},
+    {"id": "2026-11-23-02-q6", "text": "마이크로커널의 IPC 비용은 실제로 얼마나 크며, L4 이후 모놀리식 커널과의 성능 차이는 어느 정도까지 줄었나?", "answered": false, "answer": null, "about": ["microkernel", "monolithic-kernel"]}
+  ],
+  "examples": [
+    {"id": "syscall-wrapper-ex1", "concept": "syscall-wrapper", "kind": "code", "body": "#define _GNU_SOURCE\n#include <stdio.h>\n#include <sys/syscall.h>   // SYS_getpid, SYS_gettid 같은 번호 상수\n#include <unistd.h>\n\nint main(void) {\n    pid_t a = getpid();             // libc 래퍼\n    long  b = syscall(SYS_getpid);  // 번호로 직접 호출 (x86-64에서 39번)\n    long  t = syscall(SYS_gettid);  // 번호로 직접 호출\n    printf(\"%d %ld %ld\\n\", a, b, t);   // a와 b는 같은 값\n    return 0;\n}"},
+    {"id": "system-call-parameter-passing-ex1", "concept": "system-call-parameter-passing", "kind": "code", "body": "#include <stddef.h>\n\nlong my_write(int fd, const void *buf, size_t n) {\n    long ret;\n    __asm__ volatile (\"syscall\"\n        : \"=a\"(ret)                    // 반환값: rax\n        : \"a\"(1L),                     // 번호: rax = 1 (write)\n          \"D\"(fd), \"S\"(buf), \"d\"(n)    // 인자: rdi, rsi, rdx\n        : \"rcx\", \"r11\", \"memory\");     // 표에 없는 레지스터도 바뀔 수 있다\n    return ret;\n}"},
+    {"id": "system-call-ex1", "concept": "system-call", "kind": "analogy", "body": "관공서 민원 창구: 민원인(프로그램)은 서류 번호(시스템 콜 번호)와 첨부 서류(인자)를 내고 기다린다. 창구 직원(커널)은 번호를 보고 담당 부서(커널 함수)로 넘기고 처리 결과(반환값)를 돌려준다."},
+    {"id": "microkernel-ex1", "concept": "microkernel", "kind": "analogy", "body": "모놀리식 커널은 한 층에 모든 부서가 모인 회사라 말로 바로 부탁하니 빠르지만 불이 나면 층 전체가 위험하다. 마이크로커널은 본사(커널)에 우편실만 두고 부서를 다른 건물(사용자 공간 서버)에 둔 회사라, 한 건물에 불이 나도 본사는 멀쩡하지만 모든 부탁이 우편(IPC)으로 오가서 느리다."},
+    {"id": "boot-process-ex1", "concept": "boot-process", "kind": "analogy", "body": "릴레이 경주: 펌웨어가 첫 주자로 바통(제어권)을 부트로더에 넘기고, 부트로더는 커널에, 커널은 init에 넘긴다. 앞 주자는 다음 주자를 트랙(메모리)에 세워 놓고 바통을 건넨다."}
+  ],
+  "sources": [
+    {"url": "https://man7.org/linux/man-pages/man2/syscall.2.html", "title": "syscall(2) - Linux manual page", "kind": "doc", "describes": ["system-call", "syscall-wrapper", "system-call-number", "system-call-parameter-passing"]},
+    {"url": "https://docs.kernel.org/process/adding-syscalls.html", "title": "Adding a New System Call - The Linux Kernel documentation", "kind": "doc", "describes": ["system-call-table", "system-call-number", "system-call-parameter-passing"]},
+    {"url": "https://raw.githubusercontent.com/torvalds/linux/master/arch/x86/entry/syscalls/syscall_64.tbl", "title": "Linux source: arch/x86/entry/syscalls/syscall_64.tbl", "kind": "doc", "describes": ["system-call-table", "system-call-number", "system-call-types", "loadable-kernel-module"]},
+    {"url": "https://en.wikipedia.org/wiki/System_call", "title": "System call - Wikipedia", "kind": "doc", "describes": ["system-call", "system-call-types", "api", "syscall-wrapper", "system-call-parameter-passing"]},
+    {"url": "https://en.wikipedia.org/wiki/Kernel_(operating_system)", "title": "Kernel (operating system) - Wikipedia", "kind": "doc", "describes": ["kernel-architecture", "monolithic-kernel", "microkernel", "loadable-kernel-module", "hybrid-kernel"]},
+    {"url": "https://en.wikipedia.org/wiki/Hybrid_kernel", "title": "Hybrid kernel - Wikipedia", "kind": "doc", "describes": ["hybrid-kernel", "microkernel", "monolithic-kernel"]},
+    {"url": "https://en.wikipedia.org/wiki/THE_multiprogramming_system", "title": "THE multiprogramming system - Wikipedia", "kind": "doc", "describes": ["layered-kernel"]},
+    {"url": "https://en.wikipedia.org/wiki/Booting_process_of_Linux", "title": "Booting process of Linux - Wikipedia", "kind": "doc", "describes": ["boot-process", "bios", "uefi", "bootloader", "initramfs", "init-process"]}
+  ],
+  "visuals": [
+    {"path": "posts/assets/os-structure/syscall-flow.png", "type": "diagram", "caption": "write 시스템 콜의 흐름: libc 래퍼가 번호·인자를 레지스터에 넣고 syscall로 트랩 → 시스템 콜 테이블 조회 → sys_write 실행 → sysret으로 복귀", "depicts": ["system-call", "syscall-wrapper", "system-call-number", "system-call-table", "system-call-parameter-passing", "trap", "kernel-mode", "user-mode"], "sources": ["https://man7.org/linux/man-pages/man2/syscall.2.html", "https://docs.kernel.org/process/adding-syscalls.html", "https://raw.githubusercontent.com/torvalds/linux/master/arch/x86/entry/syscalls/syscall_64.tbl", "https://en.wikipedia.org/wiki/System_call"]},
+    {"path": "posts/assets/os-structure/kernel-structures.png", "type": "diagram", "caption": "모놀리식(+모듈)·계층형·마이크로커널·하이브리드 커널에서 운영체제 서비스가 커널 공간과 사용자 공간 중 어디에 놓이는지 비교", "depicts": ["kernel-architecture", "monolithic-kernel", "loadable-kernel-module", "layered-kernel", "microkernel", "hybrid-kernel"], "sources": ["https://en.wikipedia.org/wiki/Kernel_(operating_system)", "https://en.wikipedia.org/wiki/Hybrid_kernel", "https://en.wikipedia.org/wiki/THE_multiprogramming_system"]},
+    {"path": "posts/assets/os-structure/boot-sequence.png", "type": "diagram", "caption": "리눅스 부팅 순서: 펌웨어(BIOS/UEFI) → 부트로더 → 커널 초기화 → initramfs → init(PID 1)", "depicts": ["boot-process", "bios", "uefi", "bootloader", "initramfs", "init-process"], "sources": ["https://en.wikipedia.org/wiki/Booting_process_of_Linux"]}
+  ],
+  "post": {
+    "slug": "os-structure",
+    "title": "운영체제 구조: 시스템 콜, 커널 설계, 그리고 부팅",
+    "path": "posts/2026-11-23-os-structure.md",
+    "explains": ["system-call", "system-call-types", "api", "syscall-wrapper", "system-call-number", "system-call-table", "system-call-parameter-passing", "kernel-architecture", "monolithic-kernel", "layered-kernel", "microkernel", "loadable-kernel-module", "hybrid-kernel", "boot-process", "bios", "uefi", "bootloader", "initramfs", "init-process", "trap", "trap-table", "kernel-mode", "user-mode"]
+  }
+}

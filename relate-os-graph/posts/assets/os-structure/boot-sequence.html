@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boot Sequence</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --fw: #BA7517; --fw-bg: #FAEEDA; --fw-ink: #633806;
+    --usr: #0F6E56; --usr-bg: #E1F5EE; --usr-ink: #04342C;
+    --hw: #5F5E5A; --hw-bg: #E8E6DE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --fw: #EF9F27; --fw-bg: #412402; --fw-ink: #FAEEDA;
+      --usr: #5DCAA5; --usr-bg: #04342C; --usr-ink: #E1F5EE;
+      --hw: #B4B2A9; --hw-bg: #2C2C2A;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .s { fill: var(--muted); font-size: 12px; text-anchor: middle; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .chip rect { fill: var(--lane); }
+  .chip text { fill: var(--ink); font-size: 13px; font-weight: 700; text-anchor: middle; }
+  .chip text.m { font-size: 12px; font-weight: 400; }
+  .b text { font-size: 12px; font-weight: 700; fill: #fff; text-anchor: middle; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 440" role="img" aria-label="리눅스 부팅 순서: 펌웨어(BIOS 또는 UEFI)에서 부트로더, 커널 초기화, initramfs, init 프로세스(PID 1)로 제어가 넘어간다">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+  </defs>
+
+  <!-- ===== 1 firmware ===== -->
+  <rect x="20" y="20" width="176" height="320" rx="14" fill="var(--card)" stroke="var(--fw)" stroke-width="1.6"/>
+  <g class="ico" stroke="var(--fw)" transform="translate(92 34)"><path d="M16 2v12"/><path d="M8 7a12 12 0 1 0 16 0"/></g>
+  <text class="t" x="108" y="98" style="fill:var(--fw-ink)">펌웨어</text>
+  <text class="s m" x="108" y="117">firmware</text>
+  <rect x="32" y="132" width="152" height="106" rx="10" fill="var(--fw-bg)"/>
+  <text class="m" x="108" y="157" text-anchor="middle" font-size="14" font-weight="700" fill="var(--fw-ink)">BIOS</text>
+  <g class="chip">
+    <rect x="44" y="168" width="128" height="30" rx="8" style="fill:var(--card)"/><text x="108" y="188" class="m" style="font-weight:700">POST</text>
+    <rect x="44" y="204" width="128" height="30" rx="8" style="fill:var(--card)"/><text x="108" y="224" class="m">MBR 512B</text>
+  </g>
+  <rect x="32" y="246" width="152" height="84" rx="10" fill="var(--fw-bg)"/>
+  <text class="m" x="108" y="267" text-anchor="middle" font-size="14" font-weight="700" fill="var(--fw-ink)">UEFI</text>
+  <g class="chip">
+    <rect x="44" y="276" width="128" height="30" rx="8" style="fill:var(--card)"/><text x="108" y="296">EFI 앱 실행</text>
+  </g>
+  <text class="s m" x="108" y="321">grubx64.efi</text>
+
+  <!-- ===== 2 bootloader ===== -->
+  <rect x="216" y="20" width="176" height="320" rx="14" fill="var(--card)" stroke="var(--stroke)"/>
+  <g class="ico" stroke="var(--ink)" transform="translate(288 36)"><rect x="0" y="0" width="32" height="28" rx="4"/><path d="M6 8h20M6 14h14M6 20h17"/></g>
+  <text class="t" x="304" y="98">부트로더</text>
+  <text class="s m" x="304" y="117">GRUB 2 · systemd-boot</text>
+  <g class="chip">
+    <rect x="228" y="150" width="152" height="34" rx="8"/><text x="304" y="172">부트 메뉴</text>
+    <rect x="228" y="192" width="152" height="34" rx="8"/><text x="304" y="214">커널 이미지 적재</text>
+    <rect x="228" y="234" width="152" height="34" rx="8"/><text x="304" y="256">initramfs 적재</text>
+  </g>
+  <text class="s m" x="304" y="296">bzImage</text>
+
+  <!-- ===== 3 kernel ===== -->
+  <rect x="412" y="20" width="176" height="320" rx="14" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <g class="ico" stroke="var(--core)" transform="translate(484 34)"><rect x="4" y="4" width="24" height="24" rx="3"/><rect x="11" y="11" width="10" height="10"/><path d="M10 0v4M16 0v4M22 0v4M10 28v4M16 28v4M22 28v4M0 10h4M0 16h4M0 22h4M28 10h4M28 16h4M28 22h4"/></g>
+  <text class="t" x="500" y="98" style="fill:var(--core-ink)">커널 초기화</text>
+  <text class="s m" x="500" y="117">kernel</text>
+  <g class="chip">
+    <rect x="424" y="150" width="152" height="34" rx="8" style="fill:var(--card)"/><text x="500" y="172">압축 해제</text>
+    <rect x="424" y="192" width="152" height="34" rx="8" style="fill:var(--card)"/><text x="500" y="214" class="m">start_kernel()</text>
+    <rect x="424" y="234" width="152" height="34" rx="8" style="fill:var(--card)"/><text x="500" y="256">인터럽트 설정</text>
+    <rect x="424" y="276" width="152" height="34" rx="8" style="fill:var(--card)"/><text x="500" y="298">메모리 설정</text>
+  </g>
+
+  <!-- ===== 4 initramfs ===== -->
+  <rect x="608" y="20" width="176" height="320" rx="14" fill="var(--card)" stroke="var(--usr)" stroke-width="1.6"/>
+  <g class="ico" stroke="var(--usr)" transform="translate(680 36)"><rect x="0" y="0" width="32" height="9" rx="2"/><path d="M3 9v19h26V9M12 16h8"/></g>
+  <text class="t" x="696" y="98" style="fill:var(--usr-ink)">initramfs</text>
+  <text class="s m" x="696" y="117">early user space</text>
+  <g class="chip">
+    <rect x="620" y="150" width="152" height="34" rx="8"/><text x="696" y="172">드라이버 적재</text>
+    <rect x="620" y="192" width="152" height="34" rx="8"/><text x="696" y="214">진짜 루트 찾기</text>
+    <rect x="620" y="234" width="152" height="34" rx="8"/><text x="696" y="256" class="m">pivot_root</text>
+  </g>
+
+  <!-- ===== 5 init ===== -->
+  <rect x="804" y="20" width="176" height="320" rx="14" fill="var(--usr-bg)" stroke="var(--usr)" stroke-width="1.6"/>
+  <g class="ico" stroke="var(--usr)" transform="translate(876 34)"><circle cx="16" cy="5" r="4.5"/><circle cx="5" cy="27" r="4.5"/><circle cx="27" cy="27" r="4.5"/><path d="M16 10v7M16 17H5v5M16 17h11v5"/></g>
+  <text class="t" x="892" y="98" style="fill:var(--usr-ink)">init</text>
+  <text class="s m" x="892" y="117">PID 1 · systemd</text>
+  <g class="chip">
+    <rect x="816" y="150" width="152" height="34" rx="8" style="fill:var(--card)"/><text x="892" y="172">파일 시스템 마운트</text>
+    <rect x="816" y="192" width="152" height="34" rx="8" style="fill:var(--card)"/><text x="892" y="214">서비스 시작</text>
+    <rect x="816" y="234" width="152" height="34" rx="8" style="fill:var(--card)"/><text x="892" y="256">병렬 시작</text>
+  </g>
+
+  <!-- arrows between stages -->
+  <line x1="198" y1="70" x2="212" y2="70" stroke="var(--muted)" stroke-width="2" marker-end="url(#a-mut)"/>
+  <line x1="394" y1="70" x2="408" y2="70" stroke="var(--muted)" stroke-width="2" marker-end="url(#a-mut)"/>
+  <line x1="590" y1="70" x2="604" y2="70" stroke="var(--muted)" stroke-width="2" marker-end="url(#a-mut)"/>
+  <line x1="786" y1="70" x2="800" y2="70" stroke="var(--muted)" stroke-width="2" marker-end="url(#a-mut)"/>
+
+  <!-- step badges -->
+  <g class="b">
+    <circle cx="40" cy="40" r="11" fill="var(--fw)"/><text x="40" y="44">1</text>
+    <circle cx="236" cy="40" r="11" fill="var(--muted)"/><text x="236" y="44">2</text>
+    <circle cx="432" cy="40" r="11" fill="var(--core)"/><text x="432" y="44">3</text>
+    <circle cx="628" cy="40" r="11" fill="var(--usr)"/><text x="628" y="44">4</text>
+    <circle cx="824" cy="40" r="11" fill="var(--usr)"/><text x="824" y="44">5</text>
+  </g>
+
+  <!-- privilege band -->
+  <rect x="20" y="362" width="568" height="34" rx="10" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text x="304" y="384" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--core-ink)">특권 실행</text>
+  <rect x="608" y="362" width="372" height="34" rx="10" fill="var(--usr-bg)" stroke="var(--usr)"/>
+  <text x="794" y="384" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--usr-ink)">사용자 공간</text>
+  <line x1="20" y1="418" x2="972" y2="418" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#a-mut)"/>
+  <text class="s" x="20" y="434" style="text-anchor:start">전원 켜짐</text>
+  <text class="s m" x="960" y="434" style="text-anchor:end">time</text>
+</svg>
+</figure>
+</body>
+</html>

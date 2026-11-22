@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kernel Structures</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --svc: #0F6E56; --svc-bg: #E1F5EE; --svc-ink: #04342C;
+    --hw: #5F5E5A; --hw-bg: #E8E6DE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --svc: #5DCAA5; --svc-bg: #04342C; --svc-ink: #E1F5EE;
+      --hw: #B4B2A9; --hw-bg: #2C2C2A;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 17px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .lbl { font-size: 12px; font-weight: 700; }
+  .app rect { fill: var(--card); stroke: var(--stroke); }
+  .app text { fill: var(--ink); font-size: 13px; font-weight: 700; text-anchor: middle; }
+  .svc rect { fill: var(--svc-bg); stroke: var(--svc); }
+  .svc text { fill: var(--svc-ink); font-size: 13px; font-weight: 700; text-anchor: middle; }
+  .core rect { fill: var(--card); stroke: var(--core); stroke-width: 1.6; }
+  .core text { fill: var(--core-ink); font-size: 13px; font-weight: 700; text-anchor: middle; }
+  .hwb rect { fill: var(--hw-bg); }
+  .hwb text { fill: var(--hw); font-size: 13px; font-weight: 700; text-anchor: middle; }
+  .ex { fill: var(--muted); font-size: 12.5px; text-anchor: middle; font-family: "JetBrains Mono", Consolas, monospace; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 630" role="img" aria-label="모놀리식, 계층형, 마이크로커널, 하이브리드 커널 구조 비교. 운영체제 서비스가 커널 공간에 있는지 사용자 공간에 있는지를 색으로 구분한다">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="a-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+  </defs>
+
+  <!-- ============ column frames ============ -->
+  <g>
+    <rect x="20" y="20" width="225" height="545" rx="16" fill="var(--card)" stroke="var(--stroke)"/>
+    <rect x="265" y="20" width="225" height="545" rx="16" fill="var(--card)" stroke="var(--stroke)"/>
+    <rect x="510" y="20" width="225" height="545" rx="16" fill="var(--card)" stroke="var(--stroke)"/>
+    <rect x="755" y="20" width="225" height="545" rx="16" fill="var(--card)" stroke="var(--stroke)"/>
+  </g>
+  <text class="t" x="40" y="54">모놀리식</text><text class="s m" x="40" y="74">monolithic</text>
+  <text class="t" x="285" y="54">계층형</text><text class="s m" x="285" y="74">layered</text>
+  <text class="t" x="530" y="54">마이크로커널</text><text class="s m" x="530" y="74">microkernel</text>
+  <text class="t" x="775" y="54">하이브리드</text><text class="s m" x="775" y="74">hybrid</text>
+
+  <!-- user / kernel regions -->
+  <g>
+    <rect x="32" y="90" width="201" height="150" rx="12" fill="var(--lane)"/>
+    <rect x="277" y="90" width="201" height="150" rx="12" fill="var(--lane)"/>
+    <rect x="522" y="90" width="201" height="150" rx="12" fill="var(--lane)"/>
+    <rect x="767" y="90" width="201" height="150" rx="12" fill="var(--lane)"/>
+    <rect x="32" y="256" width="201" height="210" rx="12" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.2"/>
+    <rect x="277" y="256" width="201" height="210" rx="12" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.2"/>
+    <rect x="522" y="256" width="201" height="210" rx="12" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.2"/>
+    <rect x="767" y="256" width="201" height="210" rx="12" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.2"/>
+  </g>
+  <g class="lbl">
+    <text x="44" y="110" fill="var(--muted)">사용자</text><text x="44" y="276" fill="var(--core-ink)">커널</text>
+    <text x="289" y="110" fill="var(--muted)">사용자</text><text x="289" y="276" fill="var(--core-ink)">커널</text>
+    <text x="534" y="110" fill="var(--muted)">사용자</text><text x="534" y="276" fill="var(--core-ink)">커널</text>
+    <text x="779" y="110" fill="var(--muted)">사용자</text><text x="779" y="276" fill="var(--core-ink)">커널</text>
+  </g>
+
+  <!-- hardware -->
+  <g class="hwb">
+    <rect x="32" y="478" width="201" height="38" rx="10"/><text x="132" y="502">하드웨어</text>
+    <rect x="277" y="478" width="201" height="38" rx="10"/><text x="377" y="502">하드웨어</text>
+    <rect x="522" y="478" width="201" height="38" rx="10"/><text x="622" y="502">하드웨어</text>
+    <rect x="767" y="478" width="201" height="38" rx="10"/><text x="867" y="502">하드웨어</text>
+  </g>
+
+  <!-- examples -->
+  <text class="ex" x="132" y="546">Linux · FreeBSD</text>
+  <text class="ex" x="377" y="546">THE (1968)</text>
+  <text class="ex" x="622" y="546">MINIX 3 · QNX</text>
+  <text class="ex" x="867" y="546">Windows NT · XNU</text>
+
+  <!-- ============ 1. monolithic ============ -->
+  <g class="app">
+    <rect x="48" y="140" width="80" height="40" rx="10"/><text x="88" y="165">앱</text>
+    <rect x="138" y="140" width="80" height="40" rx="10"/><text x="178" y="165">앱</text>
+  </g>
+  <line x1="88" y1="182" x2="88" y2="252" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#a-mut)"/>
+  <line x1="178" y1="182" x2="178" y2="252" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#a-mut)"/>
+  <g class="core">
+    <rect x="44" y="290" width="86" height="34" rx="8"/><text x="87" y="312">스케줄러</text>
+    <rect x="136" y="290" width="86" height="34" rx="8"/><text x="179" y="312">메모리</text>
+    <rect x="136" y="374" width="86" height="34" rx="8"/><text x="179" y="396">IPC</text>
+  </g>
+  <g class="svc">
+    <rect x="44" y="332" width="86" height="34" rx="8"/><text x="87" y="354">파일 시스템</text>
+    <rect x="136" y="332" width="86" height="34" rx="8"/><text x="179" y="354">드라이버</text>
+    <rect x="44" y="374" width="86" height="34" rx="8"/><text x="87" y="396">네트워크</text>
+  </g>
+  <rect x="44" y="418" width="178" height="34" rx="8" fill="var(--card)" stroke="var(--svc)" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <g fill="none" stroke="var(--svc)" stroke-width="1.8" stroke-linecap="round" transform="translate(62 426)">
+    <path d="M0 9h6M12 2v14M12 2h4a7 7 0 0 1 0 14h-4M23 9h5"/>
+  </g>
+  <text x="140" y="440" text-anchor="middle" font-size="13" font-weight="700" fill="var(--svc)">모듈</text>
+  <text x="200" y="440" text-anchor="middle" font-size="11.5" class="m" fill="var(--svc)">.ko</text>
+
+  <!-- ============ 2. layered ============ -->
+  <g class="app">
+    <rect x="293" y="140" width="80" height="40" rx="10"/><text x="333" y="165">앱</text>
+    <rect x="383" y="140" width="80" height="40" rx="10"/><text x="423" y="165">앱</text>
+  </g>
+  <line x1="377" y1="182" x2="377" y2="296" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#a-mut)"/>
+  <g class="svc">
+    <rect x="289" y="300" width="178" height="34" rx="8"/><text x="378" y="322">3 · 입출력</text>
+    <rect x="289" y="340" width="178" height="34" rx="8"/><text x="378" y="362">2 · 콘솔</text>
+    <rect x="289" y="380" width="178" height="34" rx="8"/><text x="378" y="402">1 · 메모리</text>
+  </g>
+  <g class="core">
+    <rect x="289" y="420" width="178" height="34" rx="8"/><text x="378" y="442">0 · CPU 할당</text>
+  </g>
+
+  <!-- ============ 3. microkernel ============ -->
+  <g class="app">
+    <rect x="538" y="150" width="80" height="40" rx="10"/><text x="578" y="175">앱</text>
+  </g>
+  <g class="svc">
+    <rect x="628" y="118" width="86" height="30" rx="8"/><text x="671" y="138">파일 서버</text>
+    <rect x="628" y="154" width="86" height="30" rx="8"/><text x="671" y="174">드라이버</text>
+    <rect x="628" y="190" width="86" height="30" rx="8"/><text x="671" y="210">네트워크</text>
+  </g>
+  <line x1="578" y1="192" x2="578" y2="336" stroke="var(--core)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a-core)"/>
+  <line x1="671" y1="340" x2="671" y2="226" stroke="var(--core)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a-core)"/>
+  <g class="core">
+    <rect x="552" y="340" width="142" height="64" rx="10"/>
+    <text x="623" y="366">IPC</text>
+  </g>
+  <text class="s" x="623" y="388" text-anchor="middle">스레드 · 주소 공간</text>
+
+  <!-- ============ 4. hybrid ============ -->
+  <g class="app">
+    <rect x="783" y="140" width="80" height="40" rx="10"/><text x="823" y="165">앱</text>
+  </g>
+  <g class="svc">
+    <rect x="873" y="140" width="86" height="40" rx="10"/><text x="916" y="165">서브시스템</text>
+  </g>
+  <line x1="823" y1="182" x2="823" y2="252" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#a-mut)"/>
+  <g class="svc">
+    <rect x="779" y="290" width="86" height="34" rx="8"/><text x="822" y="312">파일 시스템</text>
+    <rect x="871" y="290" width="86" height="34" rx="8"/><text x="914" y="312">드라이버</text>
+    <rect x="779" y="332" width="86" height="34" rx="8"/><text x="822" y="354">네트워크</text>
+    <rect x="871" y="332" width="86" height="34" rx="8"/><text x="914" y="354">그래픽</text>
+  </g>
+  <g class="core">
+    <rect x="779" y="384" width="178" height="68" rx="10"/>
+    <text x="868" y="412">커널 코어</text>
+  </g>
+  <text class="s m" x="868" y="434" text-anchor="middle">Mach · NT kernel</text>
+
+  <!-- legend -->
+  <rect x="250" y="590" width="16" height="16" rx="4" fill="var(--svc-bg)" stroke="var(--svc)"/>
+  <text class="s" x="274" y="603" style="font-weight:700">운영체제 서비스</text>
+  <rect x="420" y="590" width="16" height="16" rx="4" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="s" x="444" y="603" style="font-weight:700">커널 핵심 기능</text>
+  <rect x="590" y="590" width="16" height="16" rx="4" fill="var(--card)" stroke="var(--svc)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <text class="s" x="614" y="603" style="font-weight:700">실행 중 적재</text>
+</svg>
+</figure>
+</body>
+</html>
