@@ -20,6 +20,7 @@
 - MCP 서버가 파일을 열고 있으므로 터미널에서 `relate query`로 쓰지 않는다(단일 writer 잠금).
 - relate 문법이 확실하지 않으면 `relate` 스킬을, 스키마를 바꿀 때는 `relate-schema-design` 스킬을 먼저 읽는다.
 - 스키마(제약조건·인덱스)는 [schema/init.cypher](relate-os-graph/schema/init.cypher)가 기준이다. 바꿀 때는 파일과 DB를 함께 고친다.
+- 단원 13개는 [schema/seed-topics.cypher](relate-os-graph/schema/seed-topics.cypher)가 원본이다. 그래프 파일은 git에 없으므로 새로 만들 때는 `init.cypher` → `seed-topics.cypher` 순서로 실행한다.
 
 ### 쓰기 규칙
 
@@ -41,7 +42,7 @@
 
 | 라벨 | 키 (UNIQUE) | 필수 | 기타 속성 |
 |---|---|---|---|
-| `Topic` | `slug` | `name` | `order` (단원 순서, 정수) |
+| `Topic` | `slug` | `name` | `order` (단원 순서, 정수), `summary` |
 | `Concept` | `slug` | `name` | `summary`, `level` (1 기초 · 2 중급 · 3 심화) |
 | `Session` | `id` (`YYYY-MM-DD-NN`) | `date` | `summary` |
 | `Question` | `id` (`<session id>-qN`) | `text` | `answered` (불리언), `answer` |

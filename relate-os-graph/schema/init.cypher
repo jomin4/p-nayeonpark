@@ -20,6 +20,7 @@ CREATE CONSTRAINT question_text_nn IF NOT EXISTS FOR (q:Question) REQUIRE q.text
 CREATE CONSTRAINT post_title_nn    IF NOT EXISTS FOR (p:Post)     REQUIRE p.title IS NOT NULL;
 
 // ---------- 속성 타입 ----------
+CREATE CONSTRAINT topic_order_int     IF NOT EXISTS FOR (t:Topic)    REQUIRE t.order IS :: INTEGER;
 CREATE CONSTRAINT concept_level_int   IF NOT EXISTS FOR (c:Concept)  REQUIRE c.level IS :: INTEGER;
 CREATE CONSTRAINT question_answered_b IF NOT EXISTS FOR (q:Question) REQUIRE q.answered IS :: BOOLEAN;
 CREATE CONSTRAINT post_status_str     IF NOT EXISTS FOR (p:Post)     REQUIRE p.status IS :: STRING;
