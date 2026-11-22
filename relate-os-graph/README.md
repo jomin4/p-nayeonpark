@@ -45,6 +45,20 @@ Claude Code는 레포 루트의 [`.mcp.json`](../.mcp.json)을 읽어
 
 > MCP 서버가 그래프 파일을 열고 있는 동안에는 CLI로 쓰기를 할 수 없다(단일 writer).
 
+### 에이전트 스킬 (레포 전용)
+
+relate 공식 스킬을 사용자 전체(`~/.claude/skills`)가 아니라 이 레포의
+[`.claude/skills/`](../.claude/skills/)에만 두었다. 파일은 relatedb.ai에서 받은 뒤
+[docs-artifacts.json](https://relatedb.ai/docs/docs-artifacts.json)의 SHA-256과 대조해 검증했다.
+
+| 스킬 | 버전 | 용도 |
+|---|---|---|
+| `relate` | 1.2.0 | CLI · Cypher 25 · 벡터 · 운영 레퍼런스 |
+| `relate-schema-design` | 1.2.0 | 라벨 · 관계 · 제약조건 · 인덱스 설계 |
+
+> `relate skill install`은 사용자 폴더에만 설치하므로 쓰지 않는다.
+> relate를 업그레이드하면 같은 방법으로 스킬 파일도 새 버전으로 받아야 한다.
+
 ## 폴더 구조
 
 ```
