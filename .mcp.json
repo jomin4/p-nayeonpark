@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "relate": {
+      "command": "relate",
+      "args": [
+        "serve",
+        "--mcp",
+        "stdio",
+        "--database",
+        "./relate-os-graph/data/os-graph.rl"
+      ]
+    }
+  }
+}

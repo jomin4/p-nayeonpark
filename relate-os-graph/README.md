@@ -22,6 +22,29 @@ Claude Code 세션에서 운영체제(OS)를 공부하며 나온 개념·질문�
 | 학습 기록 | `Session`, `Question`, `Example` | `COVERED`, `ABOUT`, `ILLUSTRATES`, `PRODUCED` |
 | 콘텐츠 파이프라인 | `Source`, `Visual`, `Post` | `DESCRIBES`, `DEPICTS`, `EXPLAINS`, `EMBEDS`, `DERIVED_FROM`, `CITES` |
 
+## 설치와 연결
+
+relate v1.2.0 기준.
+
+```powershell
+# 1. relate CLI 설치 (%LOCALAPPDATA%\Programs\relate, 사용자 PATH에 추가됨)
+irm https://relatedb.ai/install.ps1 | iex
+
+# 2. 동작 확인 (그래프 파일이 없으면 새로 만든다)
+relate query --database ./relate-os-graph/data/os-graph.rl --read-only -c "MATCH (n) RETURN count(n) AS nodes"
+```
+
+Claude Code는 레포 루트의 [`.mcp.json`](../.mcp.json)을 읽어
+`relate serve --mcp stdio`를 띄운다. 처음 열 때 프로젝트 MCP 서버 사용을 승인하면 아래 도구가 생긴다.
+
+| MCP 도구 | 역할 |
+|---|---|
+| `mcp__relate__write_cypher` | CREATE · MERGE · SET · DELETE |
+| `mcp__relate__read_cypher` | 조회 전용 Cypher |
+| `mcp__relate__get_schema` | 라벨·관계·속성 요약 |
+
+> MCP 서버가 그래프 파일을 열고 있는 동안에는 CLI로 쓰기를 할 수 없다(단일 writer).
+
 ## 폴더 구조
 
 ```
