@@ -1,0 +1,21 @@
+# relate 그래프 데이터 (WAL·스냅샷 포함)
+relate-os-graph/data/*
+!relate-os-graph/data/.gitkeep
+*.rl
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# 환경 변수·로컬 설정
+.env
+.env.*
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
