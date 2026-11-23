@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I/O Software Stack</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806;
+    --ret: #0F6E56; --ret-bg: #E1F5EE; --ret-ink: #04342C;
+    --blu: #185FA5; --blu-bg: #E6F1FB; --blu-ink: #042C53;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA;
+      --ret: #5DCAA5; --ret-bg: #04342C; --ret-ink: #E1F5EE;
+      --blu: #85B7EB; --blu-bg: #042C53; --blu-ink: #E6F1FB;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .arr { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 556" role="img" aria-label="사용자 프로세스의 read·recv 호출이 시스템 콜을 지나 커널 입출력 서브시스템(버퍼링·캐싱·스케줄링·스풀링·오류 처리)을 거쳐 파일 시스템·tty 계층·네트워크 스택, 블록·문자·네트워크 장치, 디바이스 드라이버, 장치 컨트롤러로 내려가고, 완료는 인터럽트로 드라이버에 올라오는 입출력 소프트웨어 계층">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="var(--stroke)" stroke-width="3"/></pattern>
+  </defs>
+<rect x="40" y="20" width="780" height="84" rx="16" fill="var(--lane)"/>
+  <rect x="130.0" y="34" width="200" height="56" rx="12" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <g class="ico" style="stroke:var(--ink)" transform="translate(150 48)"><path d="M0 0 H14 L21 7 V28 H0 Z"/><path d="M14 0 V7 H21"/><line x1="4" y1="14" x2="17" y2="14"/><line x1="4" y1="20" x2="17" y2="20"/></g>
+  <text class="t" x="192.0" y="59.0" text-anchor="start" style="fill:var(--ink);font-size:14.5px">파일 읽기</text>
+  <text class="s m" x="192.0" y="77.0" text-anchor="start">read()</text>
+  <rect x="370.0" y="34" width="200" height="56" rx="12" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <g class="ico" style="stroke:var(--ink)" transform="translate(386 50)"><rect x="0" y="0" width="30" height="24" rx="4"/><path d="M6 8l5 4-5 4M14 17h9"/></g>
+  <text class="t" x="432.0" y="59.0" text-anchor="start" style="fill:var(--ink);font-size:14.5px">터미널 입력</text>
+  <text class="s m" x="432.0" y="77.0" text-anchor="start">read()</text>
+  <rect x="610.0" y="34" width="200" height="56" rx="12" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <g class="ico" style="stroke:var(--ink)" transform="translate(626 49)"><circle cx="13" cy="13" r="12"/><ellipse cx="13" cy="13" rx="5" ry="12"/><line x1="1" y1="13" x2="25" y2="13"/></g>
+  <text class="t" x="672.0" y="59.0" text-anchor="start" style="fill:var(--ink);font-size:14.5px">소켓 수신</text>
+  <text class="s m" x="672.0" y="77.0" text-anchor="start">recv()</text>
+  <line x1="40" y1="124" x2="820" y2="124" stroke="var(--core)" stroke-width="1.6" stroke-dasharray="6 6"/>
+  <rect x="490" y="112" width="200" height="24" rx="12" fill="var(--card)" stroke="var(--core)"/>
+  <text class="m" x="590" y="129" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--core)">read · write · ioctl</text>
+  <rect x="104" y="112" width="100" height="24" rx="12" fill="var(--card)" stroke="var(--core)"/>
+  <text class="s" x="154" y="129" text-anchor="middle" style="font-weight:700;fill:var(--core)">시스템 콜</text>
+  <rect x="40" y="144" width="780" height="280" rx="16" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <line class="arr" x1="230" y1="92" x2="230" y2="157" marker-end="url(#ah)"/>
+  <line class="arr" x1="470" y1="92" x2="470" y2="157" marker-end="url(#ah)"/>
+  <line class="arr" x1="710" y1="92" x2="710" y2="157" marker-end="url(#ah)"/>
+  <rect x="130" y="160" width="680" height="50" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="148" y="190" style="fill:var(--core-ink);font-size:14.5px">입출력 서브시스템</text>
+  <rect x="330" y="172" width="86" height="26" rx="13" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="s" x="373" y="190" text-anchor="middle" style="font-weight:700;fill:var(--core-ink)">버퍼링</text>
+  <rect x="424" y="172" width="86" height="26" rx="13" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="s" x="467" y="190" text-anchor="middle" style="font-weight:700;fill:var(--core-ink)">캐싱</text>
+  <rect x="518" y="172" width="86" height="26" rx="13" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="s" x="561" y="190" text-anchor="middle" style="font-weight:700;fill:var(--core-ink)">스케줄링</text>
+  <rect x="612" y="172" width="86" height="26" rx="13" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="s" x="655" y="190" text-anchor="middle" style="font-weight:700;fill:var(--core-ink)">스풀링</text>
+  <rect x="706" y="172" width="86" height="26" rx="13" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="s" x="749" y="190" text-anchor="middle" style="font-weight:700;fill:var(--core-ink)">오류 처리</text>
+  <line class="arr" x1="230" y1="212" x2="230" y2="228" marker-end="url(#ah)"/>
+  <line class="arr" x1="470" y1="212" x2="470" y2="228" marker-end="url(#ah)"/>
+  <line class="arr" x1="710" y1="212" x2="710" y2="228" marker-end="url(#ah)"/>
+  <rect x="130.0" y="230" width="200" height="46" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="230" y="250.0" text-anchor="middle" style="fill:var(--core-ink);font-size:14.5px">파일 시스템</text>
+  <text class="s m" x="230" y="268.0" text-anchor="middle">VFS</text>
+  <rect x="370.0" y="230" width="200" height="46" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="470" y="250.0" text-anchor="middle" style="fill:var(--core-ink);font-size:14.5px">tty 계층</text>
+  <text class="s m" x="470" y="268.0" text-anchor="middle">tty</text>
+  <rect x="610.0" y="230" width="200" height="46" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="710" y="250.0" text-anchor="middle" style="fill:var(--core-ink);font-size:14.5px">네트워크 스택</text>
+  <text class="s m" x="710" y="268.0" text-anchor="middle">TCP/IP</text>
+  <line class="arr" x1="230" y1="278" x2="230" y2="294" marker-end="url(#ah)"/>
+  <line class="arr" x1="470" y1="278" x2="470" y2="294" marker-end="url(#ah)"/>
+  <line class="arr" x1="710" y1="278" x2="710" y2="294" marker-end="url(#ah)"/>
+  <rect x="130.0" y="296" width="200" height="46" rx="12" fill="var(--blu-bg)" stroke="var(--blu)" stroke-width="1.4"/>
+  <text class="t" x="230" y="316.0" text-anchor="middle" style="fill:var(--blu-ink);font-size:14.5px">블록 장치</text>
+  <text class="s m" x="230" y="334.0" text-anchor="middle">b  /dev/nvme0n1</text>
+  <rect x="370.0" y="296" width="200" height="46" rx="12" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.4"/>
+  <text class="t" x="470" y="316.0" text-anchor="middle" style="fill:var(--ret-ink);font-size:14.5px">문자 장치</text>
+  <text class="s m" x="470" y="334.0" text-anchor="middle">c  /dev/ttyS0</text>
+  <rect x="610.0" y="296" width="200" height="46" rx="12" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.4"/>
+  <text class="t" x="710" y="316.0" text-anchor="middle" style="fill:var(--hw-ink);font-size:14.5px">네트워크 장치</text>
+  <text class="s m" x="710" y="334.0" text-anchor="middle">eth0</text>
+  <line class="arr" x1="230" y1="344" x2="230" y2="360" marker-end="url(#ah)"/>
+  <line class="arr" x1="470" y1="344" x2="470" y2="360" marker-end="url(#ah)"/>
+  <line class="arr" x1="710" y1="344" x2="710" y2="360" marker-end="url(#ah)"/>
+  <rect x="130.0" y="362" width="200" height="46" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="230" y="382.0" text-anchor="middle" style="fill:var(--core-ink);font-size:14.5px">디스크 드라이버</text>
+  <text class="s m" x="230" y="400.0" text-anchor="middle">driver</text>
+  <rect x="370.0" y="362" width="200" height="46" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="470" y="382.0" text-anchor="middle" style="fill:var(--core-ink);font-size:14.5px">직렬 드라이버</text>
+  <text class="s m" x="470" y="400.0" text-anchor="middle">driver</text>
+  <rect x="610.0" y="362" width="200" height="46" rx="12" fill="var(--card)" stroke="var(--core)" stroke-width="1.4"/>
+  <text class="t" x="710" y="382.0" text-anchor="middle" style="fill:var(--core-ink);font-size:14.5px">NIC 드라이버</text>
+  <text class="s m" x="710" y="400.0" text-anchor="middle">driver</text>
+  <text x="60" y="168" font-size="15" font-weight="700" fill="var(--core-ink)"></text>
+  <rect x="40" y="444" width="780" height="96" rx="16" fill="var(--hw-bg)"/>
+  <rect x="130.0" y="460" width="200" height="64" rx="12" fill="var(--card)" stroke="var(--hw)" stroke-width="1.4"/>
+  <g class="ico" style="stroke:var(--hw)" transform="translate(148 474)"><path d="M0 6 V30 A17.0 6 0 0 0 34 30 V6"/><ellipse cx="17.0" cy="6" rx="17.0" ry="6"/><path d="M0 18.0 A17.0 6 0 0 0 34 18.0"/></g>
+  <text class="t" x="192.0" y="497.0" text-anchor="start" style="fill:var(--hw-ink);font-size:14.5px">디스크 컨트롤러</text>
+  <rect x="370.0" y="460" width="200" height="64" rx="12" fill="var(--card)" stroke="var(--hw)" stroke-width="1.4"/>
+  <g class="ico" style="stroke:var(--hw)" transform="translate(384 480)"><rect x="0" y="0" width="40" height="24" rx="4"/><path d="M7 7h2M14 7h2M21 7h2M28 7h2M7 13h2M14 13h2M21 13h2M28 13h2M11 19h18"/></g>
+  <text class="t" x="432.0" y="497.0" text-anchor="start" style="fill:var(--hw-ink);font-size:14.5px">직렬 포트</text>
+  <rect x="610.0" y="460" width="200" height="64" rx="12" fill="var(--card)" stroke="var(--hw)" stroke-width="1.4"/>
+  <g class="ico" style="stroke:var(--hw)" transform="translate(626 475)"><rect x="12" y="0" width="16" height="11" rx="2"/><path d="M20 11v7M4 18h32M4 18v6M36 18v6"/><rect x="-2" y="24" width="12" height="9" rx="2"/><rect x="30" y="24" width="12" height="9" rx="2"/></g>
+  <text class="t" x="672.0" y="497.0" text-anchor="start" style="fill:var(--hw-ink);font-size:14.5px">NIC</text>
+  <line class="arr" x1="206" y1="410" x2="206" y2="458" marker-end="url(#ah)"/>
+  <line x1="254" y1="458" x2="254" y2="412" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <text class="m" x="264" y="439" font-size="11.5" font-weight="700" fill="var(--hw)">IRQ</text>
+  <line class="arr" x1="446" y1="410" x2="446" y2="458" marker-end="url(#ah)"/>
+  <line x1="494" y1="458" x2="494" y2="412" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <text class="m" x="504" y="439" font-size="11.5" font-weight="700" fill="var(--hw)">IRQ</text>
+  <line class="arr" x1="686" y1="410" x2="686" y2="458" marker-end="url(#ah)"/>
+  <line x1="734" y1="458" x2="734" y2="412" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <text class="m" x="744" y="439" font-size="11.5" font-weight="700" fill="var(--hw)">IRQ</text>
+  <g stroke="var(--muted)" stroke-width="1.6" fill="none"><path d="M840 24 h10 V100 h-10"/><path d="M840 148 h10 V420 h-10" stroke="var(--core)"/><path d="M840 448 h10 V536 h-10" stroke="var(--hw)"/></g>
+  <text class="t" x="864" y="67">사용자 모드</text>
+  <text class="t" x="864" y="289" style="fill:var(--core)">커널 모드</text>
+  <text class="t" x="864" y="497" style="fill:var(--hw)">하드웨어</text>
+</svg>
+</figure>
+</body>
+</html>
