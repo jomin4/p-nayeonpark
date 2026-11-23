@@ -1,6 +1,6 @@
 # relate 그래프 데이터 (WAL·스냅샷 포함)
-relate-os-graph/data/*
-!relate-os-graph/data/.gitkeep
+data/*
+!data/.gitkeep
 *.rl
 
 # Python

@@ -1,4 +1,4 @@
-// relate-os-graph schema (relate 1.2.0)
+// p-nayeonpark-1 graph schema (relate 1.2.0)
 // 모든 문장은 IF NOT EXISTS라 여러 번 실행해도 안전하다.
 // 순서: 제약조건 먼저, 인덱스 나중 (유일성 제약조건이 자기 인덱스를 함께 만든다).
 

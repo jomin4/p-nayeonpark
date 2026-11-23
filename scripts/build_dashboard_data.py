@@ -4,7 +4,7 @@
 그래프 DB는 이 JSON 파일들을 그대로 적재했으므로 수치가 같아야 한다.
 마지막에 합계를 출력하니 DB 조회 결과와 비교한다.
 
-사용 (relate-os-graph 폴더에서):
+사용 (레포 루트에서):
     python -I scripts/build_dashboard_data.py
 """
 import datetime
@@ -15,7 +15,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "dashboard" / "data.js"
-PREFIX = "../../"  # docs/dashboard/ → relate-os-graph/
+PREFIX = "../../"  # docs/dashboard/ → 레포 루트
 
 AREAS = [
     {"id": 1, "name": "기초", "units": [1, 2]},

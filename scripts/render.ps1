@@ -23,7 +23,7 @@ $edge = @(
 if (-not $edge) { throw 'Microsoft Edge를 찾을 수 없다.' }
 
 # 호출마다 별도 프로필을 써서 여러 렌더링이 동시에 돌아도 충돌하지 않게 한다.
-$profileDir = Join-Path ([IO.Path]::GetTempPath()) ('relate-os-graph-render-' + [guid]::NewGuid().ToString('N'))
+$profileDir = Join-Path ([IO.Path]::GetTempPath()) ('os-graph-render-' + [guid]::NewGuid().ToString('N'))
 $url = 'file:///' + ($htmlPath -replace '\\', '/')
 if (Test-Path $Out) { Remove-Item $Out -Force }
 

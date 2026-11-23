@@ -213,7 +213,7 @@
   const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   // GitHub Pages는 .md를 원문 그대로 보여 주므로, 거기서는 GitHub의 렌더링된 글 페이지로 연결한다.
   const ON_PAGES = location.hostname.endsWith('github.io');
-  const postUrl = p => ON_PAGES ? p.replace('../../', 'https://github.com/jomin4/p-nayeonpark/blob/main/relate-os-graph/') : p;
+  const postUrl = p => ON_PAGES ? p.replace('../../', 'https://github.com/jomin4/p-nayeonpark-1/blob/main/') : p;
 
   // ---------- index ----------
   const parents = {}, children = {};

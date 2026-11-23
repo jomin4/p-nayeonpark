@@ -3,11 +3,11 @@
 이 문서는 운영체제 단원 하나를 맡은 서브에이전트가 따르는 공통 지침이다.
 1단원(`os-overview`)이 완성된 기준 예시다. 같은 구조와 품질로 맡은 단원을 만든다.
 
-작업 디렉터리: `C:\Users\jomin44\Desktop\project\p-nayeonpark\relate-os-graph` (아래 경로는 모두 여기 기준)
+작업 디렉터리: `C:\Users\jomin44\Desktop\p-nayeonpark-1` (아래 경로는 모두 여기 기준)
 
 ## 먼저 읽을 것
 
-1. `../CLAUDE.md`: 그래프 규칙, 노드·관계 표, 파일 위치
+1. `CLAUDE.md`: 그래프 규칙, 노드·관계 표, 파일 위치
 2. `posts/2026-11-23-os-overview.md`: 블로그 글의 구조와 문체
 3. `posts/assets/os-overview/*.html`: 시각화 디자인(색 토큰, 다크 모드, 아이콘 방식). `:root` CSS 변수와 다크 모드 블록을 그대로 가져다 쓴다.
 4. `graph-data/01-os-overview.json`: 그래프 데이터 형식
@@ -38,7 +38,7 @@
 - 단원의 핵심 메커니즘을 2~4장으로 보여 준다. 예: 구조도, 상태 전이, 시간 흐름(타임라인), 비교.
 - 디자인: 1단원과 같은 색 토큰·둥근 카드·아이콘. **그림 안에는 설명 문장을 넣지 않는다.** 짧은 한국어 라벨만 둔다. 영문 용어는 `JetBrains Mono` 계열 작은 글씨.
 - SVG `viewBox` 너비는 1000, `<figure>` 최대 너비 1000px.
-- 렌더링 (relate-os-graph 폴더에서):
+- 렌더링 (레포 루트에서):
   `pwsh -NoProfile -File scripts/render.ps1 -Html posts/assets/<topic>/<name>.html -Width 1040 -Height <viewBox 높이 + 40>`
 - 렌더링한 PNG를 반드시 직접 열어(Read) 확인한다. 글자 겹침, 화살표가 글자나 상자를 가로지름, 잘림, 빈 공간 과다가 있으면 고쳐서 다시 렌더링한다.
 

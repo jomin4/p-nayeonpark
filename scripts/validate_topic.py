@@ -12,7 +12,7 @@ import pathlib
 import re
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent          # relate-os-graph/
+ROOT = pathlib.Path(__file__).resolve().parent.parent          # 레포 루트
 DATA = ROOT / "graph-data"
 SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 SESSION_ID = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{2}$")
