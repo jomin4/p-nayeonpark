@@ -1,7 +1,7 @@
 # CLAUDE.md
 
-이 레포의 주 프로젝트는 [relate-os-graph](relate-os-graph/README.md)다.
-운영체제(OS)를 공부하면서 나온 지식을 relate 그래프 DB에 쌓고,
+이 레포는 Claude Code로 운영체제를 학습하고, 그 결과물의 관계를 relate 임베디드 그래프 DB에 쌓아
+Claude Code가 지식 데이터를 직접 관리하며, 그 데이터로 대시보드를 만드는 프로젝트다(소개: [README](README.md), 기술 문서: [relate-os-graph](relate-os-graph/README.md)).
 주제마다 **웹 조사 → 시각화 자료 → 설명 글** 순서의 기술 블로그 글로 남긴다.
 
 ## 작업 방식
@@ -93,7 +93,7 @@
 - 그래프 데이터 형식의 기준은 [graph-data/01-os-overview.json](relate-os-graph/graph-data/01-os-overview.json)이다.
 - 검증: `python -I scripts/validate_topic.py graph-data/<NN>-<topic>.json` (`relate-os-graph/`에서 실행)
 - 개념은 한 단원만 소유한다. 다른 단원 개념은 slug로 참조만 한다.
-- 그래프를 처음부터 다시 만들 때: `init.cypher` → `seed-topics.cypher` → `graph-data/*.json`을 번호 순서로 두 번 적재(두 번째에 앞쪽 참조가 채워진다).
+- 그래프를 처음부터 다시 만들 때: `scripts/rebuild-graph.ps1`(Claude Code를 닫은 상태에서, 또는 `-Database`로 다른 경로). 내부적으로 `init.cypher` → `seed-topics.cypher` → `graph-data/*.json`을 번호 순서로 두 번 적재한다(두 번째에 앞쪽 참조가 채워진다).
 
 ## 파일 위치
 

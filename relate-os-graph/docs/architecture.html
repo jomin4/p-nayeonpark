@@ -43,8 +43,8 @@
 </head>
 <body>
 <figure>
-<svg viewBox="0 0 1200 610" role="img" aria-labelledby="ttl">
-  <title id="ttl">학습자, Claude Code, relate serve, os-graph.rl, 웹 조사, docs, GitHub로 이어지는 시스템 아키텍처</title>
+<svg viewBox="0 0 1200 630" role="img" aria-labelledby="ttl">
+  <title id="ttl">학습자, Claude Code(CLAUDE.md·skills·subagents), 웹 조사, relate serve, os-graph.rl, 레포 파일(시각화·블로그·그래프 데이터), 대시보드로 이어지는 시스템 아키텍처</title>
   <defs>
     <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M1 1L9 5L1 9z" fill="var(--line)"/>
@@ -86,9 +86,9 @@
       <rect x="236" y="326" width="84" height="40" rx="8" fill="var(--term-chip)" stroke="var(--term-chip-stroke)"/>
       <text x="278" y="350">CLAUDE.md</text>
       <rect x="328" y="326" width="84" height="40" rx="8" fill="var(--term-chip)" stroke="var(--term-chip-stroke)"/>
-      <text x="370" y="350">/commands</text>
+      <text x="370" y="350">skills</text>
       <rect x="420" y="326" width="84" height="40" rx="8" fill="var(--term-chip)" stroke="var(--term-chip-stroke)"/>
-      <text x="462" y="350">hooks</text>
+      <text x="462" y="350">subagents</text>
     </g>
   </g>
 
@@ -131,11 +131,12 @@
   </g>
   <text x="1085" y="414" text-anchor="middle" fill="var(--db-ink)" font-size="15" font-weight="700" font-family="JetBrains Mono, Consolas, monospace">os-graph.rl</text>
 
-  <!-- outputs -->
-  <path class="ln" d="M370 400 V438 H290 V474" marker-end="url(#ah)"/>
-  <path class="ln" d="M370 438 H450 V474" marker-end="url(#ah)"/>
-  <rect x="208" y="464" width="324" height="124" rx="16" fill="none" stroke="var(--line)" stroke-width="1.2" stroke-dasharray="5 5"/>
-  <text class="m" x="224" y="604" fill="var(--muted)">docs/</text>
+  <!-- outputs: repo files -->
+  <path class="ln" d="M370 400 V440 H290 V474" marker-end="url(#ah)"/>
+  <path class="ln" d="M370 440 H610 V474" marker-end="url(#ah)"/>
+  <line class="ln" x1="450" y1="440" x2="450" y2="474" marker-end="url(#ah)"/>
+  <rect x="208" y="464" width="484" height="124" rx="16" fill="none" stroke="var(--line)" stroke-width="1.2" stroke-dasharray="5 5"/>
+  <text class="m" x="224" y="608" fill="var(--muted)">repo files</text>
 
   <g>
     <rect class="card" x="220" y="480" width="140" height="96" rx="12"/>
@@ -157,22 +158,33 @@
     </g>
     <text class="t" x="450" y="556" text-anchor="middle" font-size="15">기술 블로그</text>
   </g>
-
-  <line class="ln" x1="532" y1="526" x2="630" y2="526" marker-end="url(#ah)"/>
-  <g class="chip"><rect x="550" y="496" width="62" height="22" rx="11"/><text x="581" y="511" text-anchor="middle">push</text></g>
-
-  <!-- github repo -->
   <g>
-    <rect class="card" x="640" y="480" width="260" height="96" rx="12"/>
-    <g class="ico" transform="translate(664 506)">
-      <circle cx="6" cy="6" r="5"/>
-      <circle cx="6" cy="38" r="5"/>
-      <circle cx="30" cy="16" r="5"/>
-      <line x1="6" y1="11" x2="6" y2="33"/>
-      <path d="M30 21 C30 30 6 26 6 33"/>
+    <rect class="card" x="540" y="480" width="140" height="96" rx="12"/>
+    <text x="610" y="520" text-anchor="middle" font-size="26" font-weight="700" fill="var(--ink)" font-family="JetBrains Mono, Consolas, monospace">{ }</text>
+    <text class="t" x="610" y="556" text-anchor="middle" font-size="15">그래프 데이터</text>
+  </g>
+
+  <!-- graph data -> relate (load) -->
+  <path class="ln" d="M684 512 H770 V408" marker-end="url(#ah)"/>
+  <g class="chip"><rect x="742" y="430" width="56" height="22" rx="11"/><text x="770" y="445" text-anchor="middle">load</text></g>
+
+  <!-- graph data -> dashboard (build) -->
+  <line class="ln" x1="684" y1="548" x2="950" y2="548" marker-end="url(#ah)"/>
+  <g class="chip"><rect x="836" y="518" width="62" height="22" rx="11"/><text x="867" y="533" text-anchor="middle">build</text></g>
+
+  <!-- dashboard -->
+  <g>
+    <rect class="card" x="960" y="480" width="200" height="96" rx="12"/>
+    <g class="ico" transform="translate(982 500)">
+      <rect x="0" y="0" width="44" height="34" rx="4"/>
+      <circle cx="12" cy="13" r="4"/>
+      <circle cx="30" cy="10" r="3"/>
+      <circle cx="26" cy="24" r="3"/>
+      <line x1="15" y1="15" x2="23" y2="22"/>
+      <line x1="15" y1="12" x2="27" y2="10"/>
     </g>
-    <text class="t" x="712" y="522">GitHub repo</text>
-    <text class="m" x="712" y="546">p-nayeonpark</text>
+    <text class="t" x="1040" y="518">대시보드</text>
+    <text class="m" x="1040" y="542">d3 · HTML</text>
   </g>
 </svg>
 </figure>

@@ -1,7 +1,9 @@
-# relate-os-graph
+# relate-os-graph · 기술 문서
+
+> 프로젝트 소개와 시작하기는 [레포 루트 README](../README.md)에 있다. 이 문서는 그래프 설계, 설치·연결, 학습 기록, 스크립트를 자세히 다룬다.
 
 Claude Code 세션에서 운영체제(OS)를 공부하며 나온 개념·질문·예제를
-[relate](https://relatedb.ai/) 임베디드 그래프 DB에 지식 그래프로 쌓는 프로젝트.
+[relate](https://relatedb.ai/) 임베디드 그래프 DB에 지식 그래프로 쌓는다.
 학습 결과물은 **웹 조사 → 시각화 자료 → 설명 글** 흐름의 기술 블로그 형태로 남긴다.
 
 ## 아키텍처
@@ -9,6 +11,10 @@ Claude Code 세션에서 운영체제(OS)를 공부하며 나온 개념·질문�
 ![System architecture](docs/images/architecture.png)
 
 > 원본: [docs/architecture.html](docs/architecture.html)
+
+![Production pipeline](docs/images/pipeline.png)
+
+> 원본: [docs/pipeline.html](docs/pipeline.html)
 
 ## 그래프 설계
 
@@ -30,9 +36,14 @@ relate v1.2.0 기준.
 # 1. relate CLI 설치 (%LOCALAPPDATA%\Programs\relate, 사용자 PATH에 추가됨)
 irm https://relatedb.ai/install.ps1 | iex
 
-# 2. 동작 확인 (그래프 파일이 없으면 새로 만든다)
+# 2. 레포 파일로 그래프 재구축 (init.cypher → seed-topics.cypher → graph-data/*.json 2회)
+pwsh -File relate-os-graph/scripts/rebuild-graph.ps1          # 이미 있으면 -Force
+
+# 3. 확인
 relate query --database ./relate-os-graph/data/os-graph.rl --read-only -c "MATCH (n) RETURN count(n) AS nodes"
 ```
+
+재구축 결과는 세션 중 MCP로 적재한 그래프와 노드 8종·관계 13종 수치가 모두 같다(노드 590, 관계 2,575, 약 4초).
 
 Claude Code는 레포 루트의 [`.mcp.json`](../.mcp.json)을 읽어
 `relate serve --mcp stdio`를 띄운다. 처음 열 때 프로젝트 MCP 서버 사용을 승인하면 아래 도구가 생긴다.
@@ -135,12 +146,25 @@ relate 공식 스킬을 사용자 전체(`~/.claude/skills`)가 아니라 이 �
 
 ```
 relate-os-graph/
-├── data/        # os-graph.rl (그래프 DB 파일, git 제외)
-├── docs/        # 아키텍처·설계 문서, 시각화 자료, 블로그 글
-│   └── images/
-├── posts/       # 기술 블로그 글 (YYYY-MM-DD-<slug>.md) + assets/
-├── schema/      # init.cypher(제약조건 17개 · 인덱스 3개), seed-topics.cypher(단원 13개)
-└── scripts/     # 시드, 내보내기, 시각화
+├── data/            # os-graph.rl (그래프 DB 파일, git 제외 · rebuild-graph.ps1로 재구축)
+├── docs/
+│   ├── architecture.html · pipeline.html · graph-schema.html   # 다이어그램 원본
+│   ├── images/      # 다이어그램·대시보드 PNG
+│   ├── dashboard/   # index.html + data.js (build_dashboard_data.py 출력)
+│   └── topic-agent-brief.md   # 서브에이전트 공통 지침
+├── graph-data/      # NN-<topic>.json 13개 (그래프의 원본)
+├── posts/           # 기술 블로그 13편 (YYYY-MM-DD-<slug>.md) + assets/<topic>/
+├── schema/          # init.cypher(제약조건 17 · 인덱스 4), seed-topics.cypher(단원 13)
+└── scripts/
 ```
+
+| 스크립트 | 역할 |
+|---|---|
+| [`validate_topic.py`](scripts/validate_topic.py) | 단원 JSON 검증 (필수 키, slug 형식, 참조 무결성, 단원 간 개념 중복, 파일 존재) |
+| [`load-topic.cypher`](scripts/load-topic.cypher) | 단원 JSON 하나를 한 문장으로 `MERGE` 적재 (멱등) |
+| [`rebuild-graph.ps1`](scripts/rebuild-graph.ps1) | 레포 파일만으로 그래프 전체 재구축 (relate CLI, `--fetch-params`) |
+| [`build_dashboard_data.py`](scripts/build_dashboard_data.py) | `graph-data` → `docs/dashboard/data.js`, 합계 출력 |
+| [`render.ps1`](scripts/render.ps1) | HTML 시각화 → PNG (Edge headless, 병렬 실행 가능) |
+| [`queries.cypher`](scripts/queries.cypher) | 학습 경로, 복습 목록, 헷갈리는 쌍, 진도, 전문 검색 쿼리 모음 |
 
 그래프 쓰기 규칙과 학습 세션 흐름은 레포 루트의 [CLAUDE.md](../CLAUDE.md)에 있다.
