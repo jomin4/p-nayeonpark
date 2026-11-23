@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Synchronization Layers</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806;
+    --ret: #0F6E56; --ret-bg: #E1F5EE; --ret-ink: #04342C;
+    --blu: #185FA5; --blu-bg: #E6F1FB; --blu-ink: #042C53;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+    --gray: #5F5E5A; --gray-bg: #E8E6DE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA;
+      --ret: #5DCAA5; --ret-bg: #04342C; --ret-ink: #E1F5EE;
+      --blu: #85B7EB; --blu-bg: #042C53; --blu-ink: #E6F1FB;
+      --bad: #F09595; --bad-bg: #501313;
+      --gray: #B4B2A9; --gray-bg: #2C2C2A;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 600" role="img" aria-label="동기화 도구의 층: 하드웨어 원자적 명령어(인터럽트 끄기, test-and-set, compare-and-swap, fetch-and-add) 위에 스핀락, 뮤텍스, 세마포어가 있고, 그 위에 락과 조건 변수로 이루어진 모니터가 있다">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+    <marker id="ah-blu" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--blu)"/></marker>
+    <marker id="ah-bad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--bad)"/></marker>
+  </defs>
+  <rect x="30" y="20" width="940" height="212" rx="16" fill="var(--lane)"/>
+  <text class="t" x="54" y="56" font-size="16">언어</text>
+  <text class="s m" x="54" y="76">language</text>
+  <rect x="30" y="250" width="940" height="160" rx="16" fill="var(--lane)"/>
+  <text class="t" x="54" y="286" font-size="16">운영체제</text>
+  <text class="s m" x="54" y="306">kernel · library</text>
+  <rect x="30" y="428" width="940" height="152" rx="16" fill="var(--lane)"/>
+  <text class="t" x="54" y="464" font-size="16">하드웨어</text>
+  <text class="s m" x="54" y="484">atomic instruction</text>
+  <rect x="200" y="462" width="175" height="96" rx="12" fill="var(--card)" stroke="var(--gray)" stroke-width="1.4"/>
+  <text class="t" x="287.5" y="497" text-anchor="middle" font-size="15">인터럽트 끄기</text>
+  <rect x="231.4" y="516" width="41.2" height="26" rx="8" fill="var(--gray-bg)" stroke="var(--gray)" stroke-width="1"/>
+  <text class="m" x="252" y="534" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gray-ink)">cli</text>
+  <text class="s" x="292" y="534" style="fill:var(--bad);font-weight:700">단일 CPU</text>
+  <rect x="395" y="462" width="175" height="96" rx="12" fill="var(--card)" stroke="var(--gray)" stroke-width="1.4"/>
+  <text class="t m" x="482.5" y="497" text-anchor="middle" font-size="14.5">test-and-set</text>
+  <rect x="457.7" y="516" width="49.6" height="26" rx="8" fill="var(--gray-bg)" stroke="var(--gray)" stroke-width="1"/>
+  <text class="m" x="482.5" y="534" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gray-ink)">xchg</text>
+  <rect x="590" y="462" width="175" height="96" rx="12" fill="var(--card)" stroke="var(--gray)" stroke-width="1.4"/>
+  <text class="t m" x="677.5" y="497" text-anchor="middle" font-size="14.5">compare-and-swap</text>
+  <rect x="619.1" y="516" width="116.80000000000001" height="26" rx="8" fill="var(--gray-bg)" stroke="var(--gray)" stroke-width="1"/>
+  <text class="m" x="677.5" y="534" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gray-ink)">lock cmpxchg</text>
+  <rect x="785" y="462" width="175" height="96" rx="12" fill="var(--card)" stroke="var(--gray)" stroke-width="1.4"/>
+  <text class="t m" x="872.5" y="497" text-anchor="middle" font-size="14.5">fetch-and-add</text>
+  <rect x="826.7" y="516" width="91.60000000000001" height="26" rx="8" fill="var(--gray-bg)" stroke="var(--gray)" stroke-width="1"/>
+  <text class="m" x="872.5" y="534" text-anchor="middle" font-size="13" font-weight="700" fill="var(--gray-ink)">lock xadd</text>
+  <rect x="200" y="270" width="240" height="118" rx="12" fill="var(--card)" stroke="var(--bad)" stroke-width="1.6"/>
+  <text class="t" x="268" y="300" font-size="16">스핀락</text>
+  <text class="s m" x="268" y="319">spinlock</text>
+  <text class="s" x="220" y="348" style="fill:var(--bad);font-weight:700">바쁜 대기</text>
+  <rect x="220.0" y="356" width="200" height="26" rx="8" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1"/>
+  <text class="m" x="320" y="374" text-anchor="middle" font-size="13" font-weight="700" fill="var(--bad-ink)">while (TAS) ;</text>
+  <g class="ico" stroke="var(--bad)" transform="translate(220 282)"><path d="M30 16a13 13 0 1 1-4-9.5"/><path d="M27 1v6h-6"/></g>
+  <rect x="460" y="270" width="240" height="118" rx="12" fill="var(--card)" stroke="var(--blu)" stroke-width="1.6"/>
+  <text class="t" x="528" y="300" font-size="16">뮤텍스</text>
+  <text class="s m" x="528" y="319">mutex</text>
+  <text class="s" x="480" y="348" style="fill:var(--blu);font-weight:700">잠들고 깨우기</text>
+  <rect x="480.0" y="356" width="200" height="26" rx="8" fill="var(--blu-bg)" stroke="var(--blu)" stroke-width="1"/>
+  <text class="m" x="580" y="374" text-anchor="middle" font-size="13" font-weight="700" fill="var(--blu-ink)">futex</text>
+  <g class="ico" stroke="var(--blu)" transform="translate(480 282)"><path d="M26 22A13 13 0 0 1 12 4a13 13 0 1 0 14 18z"/></g>
+  <rect x="720" y="270" width="240" height="118" rx="12" fill="var(--card)" stroke="var(--ret)" stroke-width="1.6"/>
+  <text class="t" x="788" y="300" font-size="16">세마포어</text>
+  <text class="s m" x="788" y="319">semaphore</text>
+  <text class="s" x="740" y="348" style="fill:var(--ret);font-weight:700">정수 + 대기 큐</text>
+  <rect x="740.0" y="356" width="200" height="26" rx="8" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1"/>
+  <text class="m" x="840" y="374" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ret-ink)">wait · signal</text>
+  <g class="ico" stroke="var(--ret)" transform="translate(740 282)"><rect x="1" y="3" width="28" height="26" rx="5"/><path d="M15 9v14M8 16h14"/></g>
+  <line x1="320" y1="424" x2="320" y2="394" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+  <line x1="580" y1="424" x2="580" y2="394" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+  <line x1="840" y1="424" x2="840" y2="394" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+  <rect x="360" y="40" width="400" height="174" rx="14" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.8"/>
+  <text class="t" x="380" y="68" font-size="16" style="fill:var(--core-ink)">모니터</text>
+  <text class="s m" x="440" y="67">monitor</text>
+  <rect x="380" y="82" width="110" height="34" rx="9" fill="var(--card)" stroke="var(--blu)" stroke-width="1.4"/>
+  <g class="ico" stroke="var(--blu)" transform="translate(394 89)" style="stroke-width:2"><rect x="0" y="8" width="16" height="12" rx="2.5"/><path d="M3.5 8V5a4.5 4.5 0 0 1 9 0v3"/></g>
+  <text class="t" x="420" y="105" font-size="14">락</text>
+  <text class="s m" x="478" y="104" text-anchor="end">mutex</text>
+  <rect x="504" y="82" width="236" height="34" rx="9" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <text class="t" x="622" y="105" text-anchor="middle" font-size="14">공유 데이터 · 프로시저</text>
+  <rect x="380" y="126" width="360" height="34" rx="9" fill="var(--card)" stroke="var(--core)" stroke-width="1.2"/>
+  <text class="t" x="396" y="148" font-size="14">조건 변수</text>
+  <text class="m" x="470" y="148" font-size="14" font-weight="700" fill="var(--core)">x</text>
+  <path class="ico" stroke="var(--hw)" d="M700 144 q5 -9 10 0 t10 0 t10 0"/>
+  <path class="ico" stroke="var(--hw)" d="M660 144 q5 -9 10 0 t10 0 t10 0"/>
+  <rect x="380" y="168" width="360" height="34" rx="9" fill="var(--card)" stroke="var(--core)" stroke-width="1.2"/>
+  <text class="t" x="396" y="190" font-size="14">조건 변수</text>
+  <text class="m" x="470" y="190" font-size="14" font-weight="700" fill="var(--core)">y</text>
+  <path class="ico" stroke="var(--hw)" d="M700 186 q5 -9 10 0 t10 0 t10 0"/>
+  <path class="ico" stroke="var(--hw)" d="M206 138 q5 -9 10 0 t10 0 t10 0"/>
+  <path class="ico" stroke="var(--hw)" d="M246 138 q5 -9 10 0 t10 0 t10 0"/>
+  <path class="ico" stroke="var(--hw)" d="M286 138 q5 -9 10 0 t10 0 t10 0"/>
+  <line x1="320" y1="134" x2="352" y2="134" stroke="var(--hw)" stroke-width="2" marker-end="url(#ah-hw)"/>
+  <text class="s" x="250" y="168" text-anchor="middle">진입 큐</text>
+  <rect x="790.0" y="72" width="150" height="26" rx="8" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1"/>
+  <text class="m" x="865" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="var(--core-ink)">wait()</text>
+  <text class="s" x="865" y="118" text-anchor="middle">락 반납 + 잠들기</text>
+  <rect x="790.0" y="142" width="150" height="26" rx="8" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1"/>
+  <text class="m" x="865" y="160" text-anchor="middle" font-size="13" font-weight="700" fill="var(--core-ink)">signal()</text>
+  <text class="s" x="865" y="188" text-anchor="middle">대기자 하나 깨우기</text>
+  <line x1="580" y1="266" x2="580" y2="220" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+</svg>
+</figure>
+</body>
+</html>

@@ -1,0 +1,112 @@
+{
+  "topic": "synchronization",
+  "session": {
+    "id": "2026-11-23-06",
+    "date": "2026-11-23",
+    "summary": "6단원 프로세스 동기화. 공유 카운터의 load·add·store 인터리빙으로 경쟁 조건을 설명하고 실제로 재현했다(2000만 중 약 40% 손실). 임계 구역 문제의 세 조건, 피터슨 알고리즘과 현대 CPU에서의 실패(메모리 배리어로 해결, 직접 확인), 인터럽트 끄기, test-and-set·compare-and-swap과 x86 명령어, 스핀락·뮤텍스(futex)·세마포어·모니터와 조건 변수(Mesa 의미론), 유한 버퍼·읽기-쓰기·식사하는 철학자, 우선순위 역전을 정리했다. OSTEP 26·28·30·31장, UIC 강의 노트, 위키백과 2개, man7 sem_overview를 참고했다."
+  },
+  "concepts": [
+    {"slug": "race-condition", "name": "경쟁 조건", "level": 1, "summary": "여러 스레드가 공유 데이터에 접근할 때 결과가 실행 타이밍(인터리빙)에 따라 달라지는 상황. 공유 데이터를 두고 생기면 데이터 경쟁이라 하며, 결과가 비결정적이 된다"},
+    {"slug": "critical-section", "name": "임계 구역", "level": 1, "summary": "공유 변수나 자원에 접근해서, 둘 이상의 스레드가 동시에 실행하면 안 되는 코드 조각"},
+    {"slug": "mutual-exclusion", "name": "상호 배제", "level": 1, "summary": "한 스레드가 임계 구역 안에 있으면 다른 스레드는 들어오지 못하게 막는 성질"},
+    {"slug": "critical-section-problem", "name": "임계 구역 문제", "level": 2, "summary": "진입 구역과 퇴출 구역을 설계하는 문제. 해결책은 상호 배제, 진행(비어 있으면 진입 결정을 무한히 미루지 않음), 한정 대기(추월 횟수에 상한)를 모두 지켜야 한다"},
+    {"slug": "petersons-algorithm", "name": "피터슨 알고리즘", "level": 2, "summary": "flag 배열과 turn 변수만으로 두 스레드의 임계 구역 문제를 푸는 1981년의 소프트웨어 해법. 메모리 접근 순서를 바꾸는 현대 CPU에서는 메모리 배리어 없이 동작하지 않는다"},
+    {"slug": "interrupt-disabling", "name": "인터럽트 끄기", "level": 2, "summary": "임계 구역 동안 인터럽트를 꺼서 문맥 교환을 막는 가장 오래된 상호 배제 방법. 특권 명령어라 사용자 프로그램에 줄 수 없고 멀티프로세서에서는 통하지 않는다"},
+    {"slug": "atomic-instruction", "name": "원자적 명령어", "level": 2, "summary": "메모리를 읽고 고치고 쓰는 일을 중간에 끼어들 수 없게 한 번에 실행하는 하드웨어 명령어. test-and-set, compare-and-swap, fetch-and-add, load-linked/store-conditional 등"},
+    {"slug": "test-and-set", "name": "test-and-set", "level": 2, "summary": "옛 값을 돌려주면서 동시에 새 값을 쓰는 원자적 명령어(원자적 교환). x86에서는 xchg로 제공되며 가장 단순한 스핀락의 재료다"},
+    {"slug": "compare-and-swap", "name": "compare-and-swap", "level": 2, "summary": "메모리 값이 기대한 값과 같을 때만 새 값으로 바꾸고 원래 값을 돌려주는 원자적 명령어. x86에서는 lock cmpxchg(compare-and-exchange)다"},
+    {"slug": "spinlock", "name": "스핀락", "level": 2, "summary": "락이 풀릴 때까지 CPU를 쓰며 계속 확인하는(바쁜 대기) 락. 문맥 교환 비용이 없어 멀티코어의 짧은 임계 구역에 맞지만, 단일 CPU에서는 낭비가 크고 공정성을 보장하지 않는다"},
+    {"slug": "mutex", "name": "뮤텍스", "level": 1, "summary": "상호 배제를 위한 락. POSIX의 pthread_mutex_t처럼 락을 못 얻으면 대기 큐에서 잠들고, 락을 놓는 쪽이 깨운다"},
+    {"slug": "futex", "name": "futex", "level": 3, "summary": "리눅스가 제공하는 메모리 주소 하나와 커널 대기 큐의 짝. futex_wait(값이 그대로면 잠들기)와 futex_wake(하나 깨우기)로, 경쟁이 있을 때만 커널에 들어가는 뮤텍스를 만든다"},
+    {"slug": "semaphore", "name": "세마포어", "level": 2, "summary": "Dijkstra가 만든 정수 값과 대기 큐로 된 동기화 도구. wait(P, sem_wait)는 값을 줄이고 필요하면 기다리며, signal(V, sem_post)은 값을 늘리고 하나를 깨운다. 초깃값으로 락, 자원 세기, 순서 맞추기에 쓴다"},
+    {"slug": "binary-semaphore", "name": "이진 세마포어", "level": 2, "summary": "초깃값이 1이라 0과 1만 오가는 세마포어. 락처럼 상호 배제에 쓴다. 값이 N까지 가는 것은 카운팅 세마포어라 한다"},
+    {"slug": "condition-variable", "name": "조건 변수", "level": 2, "summary": "조건이 참이 될 때까지 잠들어 기다리는 대기 큐. wait는 락을 놓고 잠드는 일을 원자적으로 하고, signal은 기다리는 스레드 하나를 깨운다(없으면 사라짐). Mesa 의미론 때문에 조건은 while로 다시 확인한다"},
+    {"slug": "monitor", "name": "모니터", "level": 2, "summary": "데이터를 감추고 한 번에 한 메서드만 실행되게 해 상호 배제를 언어가 지켜 주는 동기화 구조. 락 하나와 하나 이상의 조건 변수로 이루어진다"},
+    {"slug": "bounded-buffer-problem", "name": "유한 버퍼 문제", "level": 2, "summary": "크기가 정해진 버퍼를 두고 생산자는 넣고 소비자는 꺼내는 고전 문제(생산자-소비자 문제). 세마포어 empty(MAX), full(0), mutex(1)로 풀며, mutex를 먼저 잡으면 교착 상태가 된다"},
+    {"slug": "readers-writers-problem", "name": "읽기-쓰기 문제", "level": 2, "summary": "읽는 스레드는 여럿이 동시에, 쓰는 스레드는 혼자만 접근하게 하는 고전 문제. 읽기 우선 해법(첫 번째 문제)은 쓰는 스레드를 굶길 수 있다"},
+    {"slug": "dining-philosophers-problem", "name": "식사하는 철학자 문제", "level": 2, "summary": "다섯 철학자가 사이사이 놓인 포크 다섯 개 중 양쪽 둘을 집어야 먹는 Dijkstra의 고전 문제. 모두 왼쪽부터 집으면 교착 상태가 생기고, 한 명의 순서를 바꿔 기다림의 원을 끊는다"},
+    {"slug": "priority-inversion", "name": "우선순위 역전", "level": 3, "summary": "높은 우선순위 스레드가 낮은 스레드가 쥔 락을 기다리는 동안 중간 우선순위 스레드가 낮은 스레드를 선점해, 사실상 높은 스레드가 중간 스레드에 밀리는 현상. 우선순위 상속으로 막는다"}
+  ],
+  "prerequisites": [
+    {"from": "thread", "to": "race-condition"},
+    {"from": "concurrency-vs-parallelism", "to": "race-condition"},
+    {"from": "preemptive-scheduling", "to": "race-condition"},
+    {"from": "shared-memory", "to": "race-condition"},
+    {"from": "race-condition", "to": "critical-section"},
+    {"from": "critical-section", "to": "mutual-exclusion"},
+    {"from": "mutual-exclusion", "to": "critical-section-problem"},
+    {"from": "starvation", "to": "critical-section-problem"},
+    {"from": "critical-section-problem", "to": "petersons-algorithm"},
+    {"from": "interrupt", "to": "interrupt-disabling"},
+    {"from": "privileged-instruction", "to": "interrupt-disabling"},
+    {"from": "mutual-exclusion", "to": "interrupt-disabling"},
+    {"from": "interrupt-disabling", "to": "atomic-instruction"},
+    {"from": "petersons-algorithm", "to": "atomic-instruction"},
+    {"from": "atomic-instruction", "to": "test-and-set"},
+    {"from": "atomic-instruction", "to": "compare-and-swap"},
+    {"from": "test-and-set", "to": "spinlock"},
+    {"from": "compare-and-swap", "to": "spinlock"},
+    {"from": "preemptive-scheduling", "to": "spinlock"},
+    {"from": "spinlock", "to": "mutex"},
+    {"from": "pthreads", "to": "mutex"},
+    {"from": "mutex", "to": "futex"},
+    {"from": "system-call", "to": "futex"},
+    {"from": "mutex", "to": "semaphore"},
+    {"from": "semaphore", "to": "binary-semaphore"},
+    {"from": "mutex", "to": "condition-variable"},
+    {"from": "condition-variable", "to": "monitor"},
+    {"from": "mutex", "to": "monitor"},
+    {"from": "semaphore", "to": "bounded-buffer-problem"},
+    {"from": "condition-variable", "to": "bounded-buffer-problem"},
+    {"from": "semaphore", "to": "readers-writers-problem"},
+    {"from": "starvation", "to": "readers-writers-problem"},
+    {"from": "semaphore", "to": "dining-philosophers-problem"},
+    {"from": "dining-philosophers-problem", "to": "deadlock"},
+    {"from": "mutex", "to": "priority-inversion"},
+    {"from": "priority-scheduling", "to": "priority-inversion"}
+  ],
+  "confusedWith": [
+    {"a": "spinlock", "b": "mutex", "note": "둘 다 상호 배제를 주지만 스핀락은 CPU를 쓰며 계속 확인(바쁜 대기, 문맥 교환 없음)하고, 뮤텍스는 대기 큐에서 잠들었다 깨어난다(문맥 교환 비용). 짧은 임계 구역과 멀티코어면 스핀락, 아니면 뮤텍스가 유리하다"},
+    {"a": "binary-semaphore", "b": "mutex", "note": "이진 세마포어도 락처럼 쓰지만, 세마포어는 값을 올리는 스레드와 내리는 스레드가 달라도 되어 순서 맞추기(초깃값 0)에도 쓴다. 뮤텍스는 상호 배제만을 위한 도구다"},
+    {"a": "semaphore", "b": "condition-variable", "note": "세마포어의 signal(sem_post)은 기다리는 스레드가 없어도 값을 올려 기억하지만, 조건 변수의 signal은 기다리는 스레드가 없으면 사라진다. 그래서 조건 변수는 락으로 보호한 상태 변수와 함께 쓴다"},
+    {"a": "priority-inversion", "b": "starvation", "note": "기아는 낮은 우선순위 작업이 계속 밀려 CPU를 못 받는 것이고, 우선순위 역전은 높은 우선순위 스레드가 락 때문에 낮은 스레드를 기다리다 중간 스레드에게까지 밀리는 것이다. 해결책도 에이징과 우선순위 상속으로 다르다"},
+    {"a": "critical-section", "b": "mutex", "note": "임계 구역은 보호가 필요한 코드 조각(문제)이고, 뮤텍스는 그 구역을 보호하는 도구(해결책)다"}
+  ],
+  "questions": [
+    {"id": "2026-11-23-06-q1", "text": "counter = counter + 1은 한 줄인데 왜 두 스레드가 실행하면 갱신이 사라지는가?", "answered": true, "answer": "CPU에게는 읽기(load)·더하기(add)·쓰기(store)로 나뉜 동작이다. 한 스레드가 읽고 더한 뒤 쓰기 전에 문맥 교환이 일어나면 다른 스레드도 같은 옛 값에서 출발해 한쪽 갱신이 덮인다. x86에서 add [mem], 1 한 명령어로 컴파일돼도 lock 접두사가 없으면 멀티코어에서 같은 일이 생긴다. 6코어 WSL 실험에서 2000만 번 중 약 40%가 사라졌다.", "about": ["race-condition", "atomic-instruction"]},
+    {"id": "2026-11-23-06-q2", "text": "피터슨 알고리즘은 세 조건을 모두 만족한다는데 왜 현대 컴퓨터에서는 실패하는가?", "answered": true, "answer": "증명은 읽기·쓰기가 코드 순서대로 일어난다고 가정하지만, 현대 컴파일러와 CPU는 메모리 접근 순서를 바꾼다. x86-64에서 그대로 돌리면 1000만 번 중 수백 번 상호 배제가 깨졌고, turn을 쓴 뒤 전체 메모리 배리어(atomic_thread_fence seq_cst, 실제로는 lock or 명령어)를 넣자 정확해졌다.", "about": ["petersons-algorithm", "mutual-exclusion"]},
+    {"id": "2026-11-23-06-q3", "text": "조건 변수를 기다릴 때 왜 if가 아니라 while로 조건을 검사하는가?", "answered": true, "answer": "거의 모든 시스템이 Mesa 의미론을 쓰기 때문이다. signal은 상태가 바뀌었다는 힌트일 뿐이고, 깨어난 스레드가 실행되기 전에 다른 스레드가 상태를 다시 바꿀 수 있다. 가짜 깨어남(spurious wakeup)도 있으므로 깨어나면 조건을 다시 확인해야 한다.", "about": ["condition-variable", "monitor"]},
+    {"id": "2026-11-23-06-q4", "text": "세마포어의 값은 음수가 될 수 있는가?", "answered": true, "answer": "구현에 따라 다르다. OSTEP과 Silberschatz식 구현은 먼저 값을 줄이고 검사하므로 음수가 될 수 있고, 그 절댓값이 기다리는 스레드 수다. 리눅스 sem_overview(7)은 POSIX 세마포어를 0 아래로 내려가지 않는 정수로 정의하고 값이 0이면 sem_wait이 막힌다.", "about": ["semaphore"]},
+    {"id": "2026-11-23-06-q5", "text": "리눅스 glibc의 pthread_mutex_lock은 futex로 잠들기 전에 얼마나 스핀하며, 2단계 락의 첫 단계 길이는 어떻게 정하는가?", "answered": false, "answer": null, "about": ["mutex", "futex", "spinlock"]},
+    {"id": "2026-11-23-06-q6", "text": "리눅스 커널 안의 스핀락은 락을 쥔 동안 선점과 인터럽트를 어떻게 다루며, spin_lock과 spin_lock_irqsave는 언제 나눠 쓰는가?", "answered": false, "answer": null, "about": ["spinlock", "interrupt-disabling"]}
+  ],
+  "examples": [
+    {"id": "race-condition-ex1", "concept": "race-condition", "kind": "code", "body": "#include <pthread.h>\n#include <stdio.h>\n\n#define N 10000000\nstatic volatile int counter = 0;\n\nstatic void *worker(void *arg) {\n    for (int i = 0; i < N; i++)\n        counter = counter + 1;   /* 보호 없는 임계 구역 */\n    return NULL;\n}\n\nint main(void) {\n    pthread_t a, b;\n    pthread_create(&a, NULL, worker, NULL);\n    pthread_create(&b, NULL, worker, NULL);\n    pthread_join(a, NULL);\n    pthread_join(b, NULL);\n    printf(\"counter = %d (expected %d)\\n\", counter, 2 * N);\n    return 0;\n}\n// 6코어 WSL 실행 결과: 11952084, 12173106, 12214238 (기대값 20000000)"},
+    {"id": "petersons-algorithm-ex1", "concept": "petersons-algorithm", "kind": "code", "body": "int flag[2] = {0, 0};\nint turn;\n\nvoid lock(int self) {\n    flag[self] = 1;          /* 나도 들어가고 싶다 */\n    turn = 1 - self;         /* 상대에게 먼저 양보 */\n    /* 현대 CPU에서는 여기에 atomic_thread_fence(memory_order_seq_cst) 필요 */\n    while (flag[1 - self] && turn == 1 - self)\n        ;                    /* 바쁜 대기 */\n}\n\nvoid unlock(int self) { flag[self] = 0; }\n// x86-64, 1000만 번: 배리어 없음 9999694 · 9999850 · 9999949 / 배리어 있음 10000000 x3"},
+    {"id": "spinlock-ex1", "concept": "spinlock", "kind": "code", "body": "#include <stdatomic.h>\n\natomic_flag lock = ATOMIC_FLAG_INIT;\n\nvoid acquire(void) {\n    while (atomic_flag_test_and_set(&lock))   /* x86-64: xchg */\n        ;                                      /* spin */\n}\n\nvoid release(void) {\n    atomic_flag_clear(&lock);\n}"},
+    {"id": "mutex-ex1", "concept": "mutex", "kind": "analogy", "body": "열쇠가 하나뿐인 화장실: 열쇠를 가진 사람만 들어가고(상호 배제), 나올 때 열쇠를 다음 사람에게 넘긴다. 기다리는 사람이 문을 계속 두드리면 스핀락, 의자에 앉아 졸다가 불려 가면 뮤텍스다."},
+    {"id": "semaphore-ex1", "concept": "semaphore", "kind": "analogy", "body": "주차장 입구의 '빈자리 7' 전광판: 차가 들어갈 때마다 하나 줄고(wait), 0이면 입구에서 기다린다. 차가 나가면 하나 늘고(signal) 기다리던 차 하나가 들어간다. 유한 버퍼의 empty 세마포어가 이 전광판이다."}
+  ],
+  "sources": [
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/threads-intro.pdf", "title": "OSTEP Ch.26 Concurrency: An Introduction", "kind": "book", "describes": ["race-condition", "critical-section", "mutual-exclusion", "atomic-instruction"]},
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/threads-locks.pdf", "title": "OSTEP Ch.28 Locks", "kind": "book", "describes": ["mutual-exclusion", "interrupt-disabling", "petersons-algorithm", "atomic-instruction", "test-and-set", "compare-and-swap", "spinlock", "mutex", "futex", "priority-inversion"]},
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/threads-cv.pdf", "title": "OSTEP Ch.30 Condition Variables", "kind": "book", "describes": ["condition-variable", "bounded-buffer-problem", "monitor"]},
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/threads-sema.pdf", "title": "OSTEP Ch.31 Semaphores", "kind": "book", "describes": ["semaphore", "binary-semaphore", "bounded-buffer-problem", "readers-writers-problem", "dining-philosophers-problem"]},
+    {"url": "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/5_Synchronization.html", "title": "UIC Operating Systems Course Notes: Process Synchronization", "kind": "doc", "describes": ["critical-section", "critical-section-problem", "petersons-algorithm", "test-and-set", "spinlock", "mutex", "semaphore", "binary-semaphore", "monitor", "condition-variable", "bounded-buffer-problem", "readers-writers-problem", "dining-philosophers-problem", "priority-inversion"]},
+    {"url": "https://en.wikipedia.org/wiki/Peterson%27s_algorithm", "title": "Peterson's algorithm - Wikipedia", "kind": "doc", "describes": ["petersons-algorithm", "critical-section-problem", "mutual-exclusion"]},
+    {"url": "https://en.wikipedia.org/wiki/Priority_inversion", "title": "Priority inversion - Wikipedia", "kind": "doc", "describes": ["priority-inversion"]},
+    {"url": "https://man7.org/linux/man-pages/man7/sem_overview.7.html", "title": "sem_overview(7) - Linux manual page", "kind": "doc", "describes": ["semaphore"]}
+  ],
+  "visuals": [
+    {"path": "posts/assets/synchronization/race-interleaving.png", "type": "diagram", "caption": "counter=50에서 두 스레드의 load·add·store가 타이머 인터럽트로 섞여 결과가 52가 아닌 51이 되는 과정", "depicts": ["race-condition", "critical-section"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/threads-intro.pdf"]},
+    {"path": "posts/assets/synchronization/critical-section.png", "type": "diagram", "caption": "진입·임계·퇴출·나머지 구역의 반복 구조와 임계 구역 문제의 세 조건(상호 배제, 진행, 한정 대기)", "depicts": ["critical-section", "critical-section-problem", "mutual-exclusion"], "sources": ["https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/5_Synchronization.html", "https://en.wikipedia.org/wiki/Peterson%27s_algorithm"]},
+    {"path": "posts/assets/synchronization/sync-layers.png", "type": "diagram", "caption": "하드웨어(인터럽트 끄기, test-and-set, compare-and-swap, fetch-and-add) 위의 스핀락·뮤텍스·세마포어, 그 위의 모니터와 조건 변수", "depicts": ["interrupt-disabling", "atomic-instruction", "test-and-set", "compare-and-swap", "spinlock", "mutex", "futex", "semaphore", "monitor", "condition-variable"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/threads-locks.pdf", "https://pages.cs.wisc.edu/~remzi/OSTEP/threads-cv.pdf", "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/5_Synchronization.html"]},
+    {"path": "posts/assets/synchronization/bounded-buffer.png", "type": "diagram", "caption": "세마포어 empty=7, full=3, mutex=1로 푼 칸 10개 유한 버퍼와 생산자·소비자의 다섯 단계", "depicts": ["bounded-buffer-problem", "semaphore", "binary-semaphore"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/threads-sema.pdf", "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/5_Synchronization.html"]}
+  ],
+  "post": {
+    "slug": "synchronization",
+    "title": "프로세스 동기화: 경쟁 조건에서 락, 세마포어, 모니터까지",
+    "path": "posts/2026-11-23-synchronization.md",
+    "explains": ["race-condition", "critical-section", "mutual-exclusion", "critical-section-problem", "petersons-algorithm", "interrupt-disabling", "atomic-instruction", "test-and-set", "compare-and-swap", "spinlock", "mutex", "futex", "semaphore", "binary-semaphore", "condition-variable", "monitor", "bounded-buffer-problem", "readers-writers-problem", "dining-philosophers-problem", "priority-inversion"]
+  }
+}
