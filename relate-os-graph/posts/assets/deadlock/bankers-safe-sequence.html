@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banker's Algorithm</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806;
+    --ret: #0F6E56; --ret-bg: #E1F5EE; --ret-ink: #04342C;
+    --blu: #185FA5; --blu-bg: #E6F1FB; --blu-ink: #042C53;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA;
+      --ret: #5DCAA5; --ret-bg: #04342C; --ret-ink: #E1F5EE;
+      --blu: #85B7EB; --blu-bg: #042C53; --blu-ink: #E6F1FB;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .arr { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+  .l { fill: var(--ink); font-size: 13px; font-weight: 700; }
+</style>
+
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 560" role="img" aria-label="은행원 알고리즘 예제. 자원 A·B·C 전체 8·5·6, 가용 3·2·2, 프로세스 P0~P3의 할당·최대·남은 요구 표. 안전 순서 P1→P2→P0→P3를 따라 work가 3 2 2에서 5 2 3, 6 4 5, 7 5 5, 8 5 6으로 늘어 안전하다. P0가 B 하나를 요청하면 가정 상태 3 1 2에서 P3만 끝낼 수 있고 work 4 1 3으로는 P0·P1·P2 누구의 남은 요구도 채우지 못해 불안전하므로 요청을 보류한다.">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+    <marker id="ah-bad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--bad)"/></marker>
+    <marker id="ah-blu" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--blu)"/></marker>
+  </defs>
+<rect x="30" y="16" width="650" height="214" rx="14" fill="var(--card)" stroke="var(--stroke)"/>
+<rect x="470" y="28" width="196" height="192" rx="10" fill="var(--core-bg)"/>
+<text class="t" x="205" y="50" text-anchor="middle" style="fill:var(--ink)">할당</text>
+<text class="s m" x="205" y="68" text-anchor="middle">Allocation</text>
+<text class="s m" x="171" y="92" text-anchor="middle" style="">A</text><text class="s m" x="205" y="92" text-anchor="middle" style="">B</text><text class="s m" x="239" y="92" text-anchor="middle" style="">C</text>
+<text class="l m" x="171" y="124" text-anchor="middle" style="fill:var(--ink)">1</text><text class="l m" x="205" y="124" text-anchor="middle" style="fill:var(--ink)">1</text><text class="l m" x="239" y="124" text-anchor="middle" style="fill:var(--ink)">0</text>
+<text class="l m" x="171" y="154" text-anchor="middle" style="fill:var(--ink)">2</text><text class="l m" x="205" y="154" text-anchor="middle" style="fill:var(--ink)">0</text><text class="l m" x="239" y="154" text-anchor="middle" style="fill:var(--ink)">1</text>
+<text class="l m" x="171" y="184" text-anchor="middle" style="fill:var(--ink)">1</text><text class="l m" x="205" y="184" text-anchor="middle" style="fill:var(--ink)">2</text><text class="l m" x="239" y="184" text-anchor="middle" style="fill:var(--ink)">2</text>
+<text class="l m" x="171" y="214" text-anchor="middle" style="fill:var(--ink)">1</text><text class="l m" x="205" y="214" text-anchor="middle" style="fill:var(--ink)">0</text><text class="l m" x="239" y="214" text-anchor="middle" style="fill:var(--ink)">1</text>
+<text class="t" x="375" y="50" text-anchor="middle" style="fill:var(--ink)">최대</text>
+<text class="s m" x="375" y="68" text-anchor="middle">Max</text>
+<text class="s m" x="341" y="92" text-anchor="middle" style="">A</text><text class="s m" x="375" y="92" text-anchor="middle" style="">B</text><text class="s m" x="409" y="92" text-anchor="middle" style="">C</text>
+<text class="l m" x="341" y="124" text-anchor="middle" style="fill:var(--ink)">5</text><text class="l m" x="375" y="124" text-anchor="middle" style="fill:var(--ink)">4</text><text class="l m" x="409" y="124" text-anchor="middle" style="fill:var(--ink)">3</text>
+<text class="l m" x="341" y="154" text-anchor="middle" style="fill:var(--ink)">3</text><text class="l m" x="375" y="154" text-anchor="middle" style="fill:var(--ink)">2</text><text class="l m" x="409" y="154" text-anchor="middle" style="fill:var(--ink)">2</text>
+<text class="l m" x="341" y="184" text-anchor="middle" style="fill:var(--ink)">6</text><text class="l m" x="375" y="184" text-anchor="middle" style="fill:var(--ink)">3</text><text class="l m" x="409" y="184" text-anchor="middle" style="fill:var(--ink)">3</text>
+<text class="l m" x="341" y="214" text-anchor="middle" style="fill:var(--ink)">2</text><text class="l m" x="375" y="214" text-anchor="middle" style="fill:var(--ink)">1</text><text class="l m" x="409" y="214" text-anchor="middle" style="fill:var(--ink)">3</text>
+<text class="t" x="560" y="50" text-anchor="middle" style="fill:var(--core-ink)">남은 요구</text>
+<text class="s m" x="560" y="68" text-anchor="middle">Need = Max − Allocation</text>
+<text class="s m" x="526" y="92" text-anchor="middle" style="">A</text><text class="s m" x="560" y="92" text-anchor="middle" style="">B</text><text class="s m" x="594" y="92" text-anchor="middle" style="">C</text>
+<text class="l m" x="526" y="124" text-anchor="middle" style="fill:var(--core-ink)">4</text><text class="l m" x="560" y="124" text-anchor="middle" style="fill:var(--core-ink)">3</text><text class="l m" x="594" y="124" text-anchor="middle" style="fill:var(--core-ink)">3</text>
+<text class="l m" x="526" y="154" text-anchor="middle" style="fill:var(--core-ink)">1</text><text class="l m" x="560" y="154" text-anchor="middle" style="fill:var(--core-ink)">2</text><text class="l m" x="594" y="154" text-anchor="middle" style="fill:var(--core-ink)">1</text>
+<text class="l m" x="526" y="184" text-anchor="middle" style="fill:var(--core-ink)">5</text><text class="l m" x="560" y="184" text-anchor="middle" style="fill:var(--core-ink)">1</text><text class="l m" x="594" y="184" text-anchor="middle" style="fill:var(--core-ink)">1</text>
+<text class="l m" x="526" y="214" text-anchor="middle" style="fill:var(--core-ink)">1</text><text class="l m" x="560" y="214" text-anchor="middle" style="fill:var(--core-ink)">1</text><text class="l m" x="594" y="214" text-anchor="middle" style="fill:var(--core-ink)">2</text>
+<text class="t m" x="78" y="124" text-anchor="middle">P0</text>
+<text class="t m" x="78" y="154" text-anchor="middle">P1</text>
+<text class="t m" x="78" y="184" text-anchor="middle">P2</text>
+<text class="t m" x="78" y="214" text-anchor="middle">P3</text>
+<line x1="48" y1="102" x2="662" y2="102" stroke="var(--stroke)"/>
+<rect x="700" y="16" width="270" height="96" rx="14" fill="var(--lane)"/>
+<text class="t" x="720" y="50">전체</text><text class="s m" x="720" y="70">total</text>
+<text class="s m" x="846" y="46" text-anchor="middle" style="">A</text><text class="s m" x="880" y="46" text-anchor="middle" style="">B</text><text class="s m" x="914" y="46" text-anchor="middle" style="">C</text>
+<text class="t m" x="846" y="80" text-anchor="middle" style="">8</text><text class="t m" x="880" y="80" text-anchor="middle" style="">5</text><text class="t m" x="914" y="80" text-anchor="middle" style="">6</text>
+<rect x="700" y="128" width="270" height="102" rx="14" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/>
+<text class="t" x="720" y="164" style="fill:var(--ret-ink)">가용</text><text class="s m" x="720" y="184">available</text>
+<text class="s m" x="846" y="160" text-anchor="middle" style="">A</text><text class="s m" x="880" y="160" text-anchor="middle" style="">B</text><text class="s m" x="914" y="160" text-anchor="middle" style="">C</text>
+<text class="t m" x="846" y="196" text-anchor="middle" style="fill:var(--ret-ink)">3</text><text class="t m" x="880" y="196" text-anchor="middle" style="fill:var(--ret-ink)">2</text><text class="t m" x="914" y="196" text-anchor="middle" style="fill:var(--ret-ink)">2</text>
+<rect x="30" y="250" width="940" height="128" rx="14" fill="var(--lane)"/>
+<text class="t" x="48" y="280">안전 순서 찾기</text>
+<text class="s m" x="952" y="280" text-anchor="end">need ≤ work → work += allocation</text>
+<rect x="48" y="302" width="92" height="54" rx="10" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/><text class="s m" x="94" y="320" text-anchor="middle">work</text><text class="t m" x="74" y="344" text-anchor="middle" style="fill:var(--ret-ink)">3</text><text class="t m" x="94" y="344" text-anchor="middle" style="fill:var(--ret-ink)">2</text><text class="t m" x="114" y="344" text-anchor="middle" style="fill:var(--ret-ink)">2</text>
+<line x1="144" y1="329" x2="218" y2="329" stroke="var(--core)" stroke-width="2" marker-end="url(#ah-core)"/><text class="l m" x="182.0" y="320" text-anchor="middle" style="fill:var(--core)">P1</text><text class="s m" x="182.0" y="348" text-anchor="middle">1 2 1</text>
+<rect x="224" y="302" width="92" height="54" rx="10" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/><text class="s m" x="270" y="320" text-anchor="middle">work</text><text class="t m" x="250" y="344" text-anchor="middle" style="fill:var(--ret-ink)">5</text><text class="t m" x="270" y="344" text-anchor="middle" style="fill:var(--ret-ink)">2</text><text class="t m" x="290" y="344" text-anchor="middle" style="fill:var(--ret-ink)">3</text>
+<line x1="320" y1="329" x2="394" y2="329" stroke="var(--core)" stroke-width="2" marker-end="url(#ah-core)"/><text class="l m" x="358.0" y="320" text-anchor="middle" style="fill:var(--core)">P2</text><text class="s m" x="358.0" y="348" text-anchor="middle">5 1 1</text>
+<rect x="400" y="302" width="92" height="54" rx="10" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/><text class="s m" x="446" y="320" text-anchor="middle">work</text><text class="t m" x="426" y="344" text-anchor="middle" style="fill:var(--ret-ink)">6</text><text class="t m" x="446" y="344" text-anchor="middle" style="fill:var(--ret-ink)">4</text><text class="t m" x="466" y="344" text-anchor="middle" style="fill:var(--ret-ink)">5</text>
+<line x1="496" y1="329" x2="570" y2="329" stroke="var(--core)" stroke-width="2" marker-end="url(#ah-core)"/><text class="l m" x="534.0" y="320" text-anchor="middle" style="fill:var(--core)">P0</text><text class="s m" x="534.0" y="348" text-anchor="middle">4 3 3</text>
+<rect x="576" y="302" width="92" height="54" rx="10" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/><text class="s m" x="622" y="320" text-anchor="middle">work</text><text class="t m" x="602" y="344" text-anchor="middle" style="fill:var(--ret-ink)">7</text><text class="t m" x="622" y="344" text-anchor="middle" style="fill:var(--ret-ink)">5</text><text class="t m" x="642" y="344" text-anchor="middle" style="fill:var(--ret-ink)">5</text>
+<line x1="672" y1="329" x2="746" y2="329" stroke="var(--core)" stroke-width="2" marker-end="url(#ah-core)"/><text class="l m" x="710.0" y="320" text-anchor="middle" style="fill:var(--core)">P3</text><text class="s m" x="710.0" y="348" text-anchor="middle">1 1 2</text>
+<rect x="752" y="302" width="92" height="54" rx="10" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/><text class="s m" x="798" y="320" text-anchor="middle">work</text><text class="t m" x="778" y="344" text-anchor="middle" style="fill:var(--ret-ink)">8</text><text class="t m" x="798" y="344" text-anchor="middle" style="fill:var(--ret-ink)">5</text><text class="t m" x="818" y="344" text-anchor="middle" style="fill:var(--ret-ink)">6</text>
+<line x1="848" y1="329" x2="864" y2="329" stroke="var(--ret)" stroke-width="2" marker-end="url(#ah-ret)"/>
+<rect x="868" y="310" width="50" height="38" rx="19" fill="var(--ret)"/>
+<text class="l" x="893" y="334" text-anchor="middle" style="fill:var(--bg)">안전</text>
+<rect x="30" y="396" width="940" height="150" rx="14" fill="var(--lane)"/>
+<text class="t" x="48" y="426">P0가 B 하나 요청</text>
+<text class="s m" x="200" y="426">request P0 = 0 1 0</text>
+<rect x="48" y="458" width="92" height="54" rx="10" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.6"/><text class="s m" x="94" y="476" text-anchor="middle">가정</text><text class="t m" x="74" y="500" text-anchor="middle" style="fill:var(--hw-ink)">3</text><text class="t m" x="94" y="500" text-anchor="middle" style="fill:var(--hw-ink)">1</text><text class="t m" x="114" y="500" text-anchor="middle" style="fill:var(--hw-ink)">2</text>
+<line x1="144" y1="485" x2="218" y2="485" stroke="var(--core)" stroke-width="2" marker-end="url(#ah-core)"/><text class="l m" x="182.0" y="476" text-anchor="middle" style="fill:var(--core)">P3</text><text class="s m" x="182.0" y="504" text-anchor="middle">1 1 2</text>
+<rect x="224" y="458" width="92" height="54" rx="10" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.6"/><text class="s m" x="270" y="476" text-anchor="middle">work</text><text class="t m" x="250" y="500" text-anchor="middle" style="fill:var(--hw-ink)">4</text><text class="t m" x="270" y="500" text-anchor="middle" style="fill:var(--hw-ink)">1</text><text class="t m" x="290" y="500" text-anchor="middle" style="fill:var(--hw-ink)">3</text>
+<line x1="320" y1="485" x2="360" y2="485" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah-bad)"/>
+<rect x="366" y="440" width="250" height="94" rx="10" fill="var(--card)" stroke="var(--bad)" stroke-width="1.6"/>
+<text class="l m" x="388" y="466">P0</text>
+<text class="s m" x="430" y="466">need</text>
+<text class="l m" x="496" y="466" text-anchor="middle" style="">4</text><text class="l m" x="516" y="466" text-anchor="middle" style="fill:var(--bad)">2</text><text class="l m" x="536" y="466" text-anchor="middle" style="">3</text>
+<text class="s m" x="556" y="466" style="fill:var(--bad);font-weight:700">&gt; work</text>
+<text class="l m" x="388" y="492">P1</text>
+<text class="s m" x="430" y="492">need</text>
+<text class="l m" x="496" y="492" text-anchor="middle" style="">1</text><text class="l m" x="516" y="492" text-anchor="middle" style="fill:var(--bad)">2</text><text class="l m" x="536" y="492" text-anchor="middle" style="">1</text>
+<text class="s m" x="556" y="492" style="fill:var(--bad);font-weight:700">&gt; work</text>
+<text class="l m" x="388" y="518">P2</text>
+<text class="s m" x="430" y="518">need</text>
+<text class="l m" x="496" y="518" text-anchor="middle" style="fill:var(--bad)">5</text><text class="l m" x="516" y="518" text-anchor="middle" style="">1</text><text class="l m" x="536" y="518" text-anchor="middle" style="">1</text>
+<text class="s m" x="556" y="518" style="fill:var(--bad);font-weight:700">&gt; work</text>
+<line x1="622" y1="485" x2="652" y2="485" stroke="var(--bad)" stroke-width="2" marker-end="url(#ah-bad)"/>
+<rect x="656" y="460" width="296" height="50" rx="12" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.6"/>
+<text class="t" x="804.0" y="482" text-anchor="middle" style="fill:var(--bad)">불안전</text>
+<text class="s" x="804.0" y="501" text-anchor="middle" style="fill:var(--bad);font-weight:700">요청 보류 · 대기</text>
+</svg>
+</figure>
+</body>
+</html>

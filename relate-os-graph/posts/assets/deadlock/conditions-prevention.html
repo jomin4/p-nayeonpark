@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deadlock Prevention</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806;
+    --ret: #0F6E56; --ret-bg: #E1F5EE; --ret-ink: #04342C;
+    --blu: #185FA5; --blu-bg: #E6F1FB; --blu-ink: #042C53;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA;
+      --ret: #5DCAA5; --ret-bg: #04342C; --ret-ink: #E1F5EE;
+      --blu: #85B7EB; --blu-bg: #042C53; --blu-ink: #E6F1FB;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .arr { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+  .l { fill: var(--ink); font-size: 13px; font-weight: 700; }
+</style>
+
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 372" role="img" aria-label="교착 상태의 네 가지 필요 조건(상호 배제, 점유 대기, 비선점, 순환 대기)이 모두 성립해야 교착이 생긴다. 예방은 그중 하나를 깬다: 락 없는 자료 구조, 모든 락을 한꺼번에 획득, trylock으로 못 얻으면 반납, 락 순서 고정. 각각의 대가는 만들기 어려움, 동시성 감소, 라이브락 위험, 규칙을 모두가 지켜야 함이다.">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+    <marker id="ah-bad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--bad)"/></marker>
+    <marker id="ah-blu" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--blu)"/></marker>
+  </defs>
+<text class="t" x="30" y="110">조건</text>
+<text class="t" x="30" y="262">깨는 방법</text>
+<text class="t" x="30" y="345">대가</text>
+<rect x="106" y="30" width="876" height="150" rx="16" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="6 4"/>
+<rect x="120" y="44" width="194" height="122" rx="12" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+<g transform="translate(217.0 76) scale(1.0)"><rect x="-12" y="-4" width="24" height="18" rx="4" fill="none" stroke="var(--ink)" stroke-width="2.2"/><path d="M-7 -4 v-6 a7 7 0 0 1 14 0 v6" fill="none" stroke="var(--ink)" stroke-width="2.2"/><circle cx="0" cy="5" r="2" fill="var(--ink)"/></g>
+<text class="t" x="217.0" y="128" text-anchor="middle">상호 배제</text>
+<text class="s m" x="217.0" y="150" text-anchor="middle">mutual exclusion</text>
+<text class="m" x="326.0" y="112" text-anchor="middle" font-size="20" font-weight="700" fill="var(--bad)">&amp;</text>
+<rect x="338" y="44" width="194" height="122" rx="12" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+<g transform="translate(419.0 76) scale(1.0)"><rect x="-12" y="-4" width="24" height="18" rx="4" fill="none" stroke="var(--ink)" stroke-width="2.2"/><path d="M-7 -4 v-6 a7 7 0 0 1 14 0 v6" fill="none" stroke="var(--ink)" stroke-width="2.2"/><circle cx="0" cy="5" r="2" fill="var(--ink)"/></g><path d="M445.0 66 h16 M445.0 90 h16 M447.0 66 L459.0 90 M459.0 66 L447.0 90" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/>
+<text class="t" x="435.0" y="128" text-anchor="middle">점유 대기</text>
+<text class="s m" x="435.0" y="150" text-anchor="middle">hold and wait</text>
+<text class="m" x="544.0" y="112" text-anchor="middle" font-size="20" font-weight="700" fill="var(--bad)">&amp;</text>
+<rect x="556" y="44" width="194" height="122" rx="12" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+<g transform="translate(637.0 76) scale(1.0)"><rect x="-12" y="-4" width="24" height="18" rx="4" fill="none" stroke="var(--ink)" stroke-width="2.2"/><path d="M-7 -4 v-6 a7 7 0 0 1 14 0 v6" fill="none" stroke="var(--ink)" stroke-width="2.2"/><circle cx="0" cy="5" r="2" fill="var(--ink)"/></g><circle cx="671.0" cy="78" r="13" fill="none" stroke="var(--bad)" stroke-width="2.2"/><line x1="662.0" y1="87" x2="680.0" y2="69" stroke="var(--bad)" stroke-width="2.2"/>
+<text class="t" x="653.0" y="128" text-anchor="middle">비선점</text>
+<text class="s m" x="653.0" y="150" text-anchor="middle">no preemption</text>
+<text class="m" x="762.0" y="112" text-anchor="middle" font-size="20" font-weight="700" fill="var(--bad)">&amp;</text>
+<rect x="774" y="44" width="194" height="122" rx="12" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+<path d="M855.0 78 a16 16 0 0 1 28 -10.5" fill="none" stroke="var(--muted)" stroke-width="2.2" marker-end="url(#ah)"/><path d="M887.0 78 a16 16 0 0 1 -28 10.5" fill="none" stroke="var(--muted)" stroke-width="2.2" marker-end="url(#ah)"/>
+<text class="t" x="871.0" y="128" text-anchor="middle">순환 대기</text>
+<text class="s m" x="871.0" y="150" text-anchor="middle">circular wait</text>
+<rect x="818" y="16" width="150" height="28" rx="14" fill="var(--bad)"/>
+<text class="l" x="893" y="35" text-anchor="middle" style="fill:var(--bg)">넷 다 성립 = 교착 가능</text>
+<line x1="217.0" y1="184" x2="217.0" y2="216" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="120" y="222" width="194" height="82" rx="12" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+<text class="t" x="217.0" y="256" text-anchor="middle" style="fill:var(--ink)">락 없는 자료 구조</text>
+<text class="s m" x="217.0" y="280" text-anchor="middle">compare-and-swap</text>
+<rect x="142" y="324" width="150" height="30" rx="15" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.2"/>
+<text class="l" x="217.0" y="344" text-anchor="middle" style="fill:var(--hw-ink)">만들기 어려움</text>
+<line x1="435.0" y1="184" x2="435.0" y2="216" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="338" y="222" width="194" height="82" rx="12" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+<text class="t" x="435.0" y="256" text-anchor="middle" style="fill:var(--ink)">한꺼번에 획득</text>
+<text class="s m" x="435.0" y="280" text-anchor="middle">global lock first</text>
+<rect x="360" y="324" width="150" height="30" rx="15" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.2"/>
+<text class="l" x="435.0" y="344" text-anchor="middle" style="fill:var(--hw-ink)">동시성 감소</text>
+<line x1="653.0" y1="184" x2="653.0" y2="216" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="556" y="222" width="194" height="82" rx="12" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+<text class="t" x="653.0" y="256" text-anchor="middle" style="fill:var(--ink)">못 얻으면 반납</text>
+<text class="s m" x="653.0" y="280" text-anchor="middle">trylock → unlock</text>
+<rect x="578" y="324" width="150" height="30" rx="15" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.2"/>
+<text class="l" x="653.0" y="344" text-anchor="middle" style="fill:var(--hw-ink)">라이브락 위험</text>
+<line x1="871.0" y1="184" x2="871.0" y2="216" stroke="var(--core)" stroke-width="2" marker-end="url(#ah-core)"/>
+<rect x="774" y="222" width="194" height="82" rx="12" fill="var(--core-bg)" stroke="var(--core)" stroke-width="2.2"/>
+<text class="t" x="871.0" y="256" text-anchor="middle" style="fill:var(--core-ink)">락 순서 고정</text>
+<text class="s m" x="871.0" y="280" text-anchor="middle">L1 before L2</text>
+<rect x="796" y="324" width="150" height="30" rx="15" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.2"/>
+<text class="l" x="871.0" y="344" text-anchor="middle" style="fill:var(--hw-ink)">모두가 지켜야 함</text>
+<rect x="876" y="208" width="104" height="26" rx="13" fill="var(--core)"/>
+<text class="l" x="928" y="226" text-anchor="middle" style="fill:var(--bg)">가장 실용적</text>
+</svg>
+</figure>
+</body>
+</html>

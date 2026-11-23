@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Lock Deadlock</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806;
+    --ret: #0F6E56; --ret-bg: #E1F5EE; --ret-ink: #04342C;
+    --blu: #185FA5; --blu-bg: #E6F1FB; --blu-ink: #042C53;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA;
+      --ret: #5DCAA5; --ret-bg: #04342C; --ret-ink: #E1F5EE;
+      --blu: #85B7EB; --blu-bg: #042C53; --blu-ink: #E6F1FB;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .arr { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+  .l { fill: var(--ink); font-size: 13px; font-weight: 700; }
+</style>
+
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 404" role="img" aria-label="두 스레드가 락 L1과 L2를 반대 순서로 잡으면 T1은 L1을 쥔 채 L2를, T2는 L2를 쥔 채 L1을 기다리며 영원히 멈추고(보유와 요청이 사이클을 이룸), 같은 순서로 잡으면 T2가 잠깐 기다린 뒤 둘 다 완료되는 비교">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+    <marker id="ah-bad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--bad)"/></marker>
+    <marker id="ah-blu" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--blu)"/></marker>
+  </defs>
+<text class="s m" x="213.0" y="22" text-anchor="middle">1</text>
+<text class="s m" x="309.0" y="22" text-anchor="middle">2</text>
+<text class="s m" x="405.0" y="22" text-anchor="middle">3</text>
+<text class="s m" x="501.0" y="22" text-anchor="middle">4</text>
+<text class="s m" x="597.0" y="22" text-anchor="middle">5</text>
+<text class="s m" x="693.0" y="22" text-anchor="middle">6</text>
+<text class="s" x="150" y="22" text-anchor="end">단계</text>
+<rect x="30" y="32" width="940" height="150" rx="14" fill="var(--lane)"/>
+<text class="t" x="48" y="64">반대 순서</text>
+<text class="s m" x="48" y="84">T1 L1→L2 · T2 L2→L1</text>
+<text class="t m" x="140" y="124" text-anchor="end">T1</text>
+<rect x="171" y="98" width="84" height="40" rx="8" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/>
+<text class="s m" x="213.0" y="115" text-anchor="middle" style="fill:var(--ret-ink);font-weight:700">lock(L1)</text>
+<path d="M207.0 127 L211.0 132 L220.0 122" fill="none" stroke="var(--ret)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="363" y="98" width="84" height="40" rx="8" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.6"/>
+<text class="s m" x="405.0" y="115" text-anchor="middle" style="fill:var(--bad);font-weight:700">lock(L2)</text>
+<line x1="402.0" y1="121" x2="402.0" y2="133" stroke="var(--bad)" stroke-width="2.6" stroke-linecap="round"/><line x1="408.0" y1="121" x2="408.0" y2="133" stroke="var(--bad)" stroke-width="2.6" stroke-linecap="round"/>
+<text class="t m" x="140" y="170" text-anchor="end">T2</text>
+<rect x="267" y="144" width="84" height="40" rx="8" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/>
+<text class="s m" x="309.0" y="161" text-anchor="middle" style="fill:var(--ret-ink);font-weight:700">lock(L2)</text>
+<path d="M303.0 173 L307.0 178 L316.0 168" fill="none" stroke="var(--ret)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="459" y="144" width="84" height="40" rx="8" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.6"/>
+<text class="s m" x="501.0" y="161" text-anchor="middle" style="fill:var(--bad);font-weight:700">lock(L1)</text>
+<line x1="498.0" y1="167" x2="498.0" y2="179" stroke="var(--bad)" stroke-width="2.6" stroke-linecap="round"/><line x1="504.0" y1="167" x2="504.0" y2="179" stroke="var(--bad)" stroke-width="2.6" stroke-linecap="round"/>
+<rect x="555" y="98" width="180" height="86" rx="8" fill="none" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="5 4"/>
+<text class="t" x="645" y="146" text-anchor="middle" style="fill:var(--bad)">영원히 대기</text>
+<rect x="752" y="44" width="206" height="128" rx="12" fill="var(--card)" stroke="var(--bad)" stroke-width="1.4"/>
+<circle cx="790" cy="84" r="18" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+<text class="l m" x="790" y="89" text-anchor="middle" style="fill:var(--core-ink)">T1</text>
+<rect x="902" y="68" width="36" height="32" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.6"/>
+<text class="l m" x="920" y="89" text-anchor="middle" style="fill:var(--hw-ink)">L2</text>
+<circle cx="920" cy="146" r="18" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+<text class="l m" x="920" y="151" text-anchor="middle" style="fill:var(--core-ink)">T2</text>
+<rect x="772" y="130" width="36" height="32" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.6"/>
+<text class="l m" x="790" y="151" text-anchor="middle" style="fill:var(--hw-ink)">L1</text>
+<line x1="810" y1="84" x2="898" y2="84" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah-bad)"/>
+<line x1="920" y1="102" x2="920" y2="126" stroke="var(--bad)" stroke-width="2" marker-end="url(#ah-bad)"/>
+<line x1="900" y1="146" x2="812" y2="146" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah-bad)"/>
+<line x1="790" y1="130" x2="790" y2="106" stroke="var(--bad)" stroke-width="2" marker-end="url(#ah-bad)"/>
+<text class="s" x="855" y="76" text-anchor="middle" style="fill:var(--bad);font-weight:700">요청</text>
+<text class="s" x="855" y="165" text-anchor="middle" style="fill:var(--bad);font-weight:700">요청</text>
+<text class="s" x="910" y="120" text-anchor="end" style="fill:var(--bad);font-weight:700">보유</text>
+<text class="s" x="800" y="120" style="fill:var(--bad);font-weight:700">보유</text>
+<rect x="30" y="202" width="940" height="150" rx="14" fill="var(--lane)"/>
+<text class="t" x="48" y="234">같은 순서</text>
+<text class="s m" x="48" y="254">T1 L1→L2 · T2 L1→L2</text>
+<text class="t m" x="140" y="294" text-anchor="end">T1</text>
+<rect x="171" y="268" width="84" height="40" rx="8" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/>
+<text class="s m" x="213.0" y="285" text-anchor="middle" style="fill:var(--ret-ink);font-weight:700">lock(L1)</text>
+<path d="M207.0 297 L211.0 302 L220.0 292" fill="none" stroke="var(--ret)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="363" y="268" width="84" height="40" rx="8" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/>
+<text class="s m" x="405.0" y="285" text-anchor="middle" style="fill:var(--ret-ink);font-weight:700">lock(L2)</text>
+<path d="M399.0 297 L403.0 302 L412.0 292" fill="none" stroke="var(--ret)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="459" y="268" width="84" height="40" rx="8" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.6"/>
+<text class="s m" x="501.0" y="285" text-anchor="middle" style="fill:var(--muted);font-weight:700">unlock</text>
+<text class="s m" x="501.0" y="301" text-anchor="middle" style="font-size:11px">release</text>
+<text class="t m" x="140" y="340" text-anchor="end">T2</text>
+<rect x="267" y="314" width="84" height="40" rx="8" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.6"/>
+<text class="s m" x="309.0" y="331" text-anchor="middle" style="fill:var(--hw-ink);font-weight:700">lock(L1)</text>
+<line x1="306.0" y1="337" x2="306.0" y2="349" stroke="var(--hw)" stroke-width="2.6" stroke-linecap="round"/><line x1="312.0" y1="337" x2="312.0" y2="349" stroke="var(--hw)" stroke-width="2.6" stroke-linecap="round"/>
+<rect x="555" y="314" width="84" height="40" rx="8" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/>
+<text class="s m" x="597.0" y="331" text-anchor="middle" style="fill:var(--ret-ink);font-weight:700">lock(L1)</text>
+<path d="M591.0 343 L595.0 348 L604.0 338" fill="none" stroke="var(--ret)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="651" y="314" width="84" height="40" rx="8" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/>
+<text class="s m" x="693.0" y="331" text-anchor="middle" style="fill:var(--ret-ink);font-weight:700">lock(L2)</text>
+<path d="M687.0 343 L691.0 348 L700.0 338" fill="none" stroke="var(--ret)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="352" y1="334" x2="552" y2="334" stroke="var(--hw)" stroke-width="1.8" stroke-dasharray="4 4" marker-end="url(#ah-hw)"/>
+<text class="s" x="456.0" y="328" text-anchor="middle" style="fill:var(--hw);font-weight:700">잠깐 대기</text>
+<rect x="752" y="216" width="206" height="122" rx="12" fill="var(--card)" stroke="var(--ret)" stroke-width="1.4"/>
+<circle cx="855" cy="260" r="20" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/>
+<path d="M849 260 L853 265 L862 255" fill="none" stroke="var(--ret)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text class="t" x="855" y="304" text-anchor="middle" style="fill:var(--ret-ink)">둘 다 완료</text>
+<text class="s m" x="855" y="324" text-anchor="middle">lock order L1 → L2</text>
+<rect x="168" y="378" width="16" height="16" rx="4" fill="var(--ret-bg)" stroke="var(--ret)"/>
+<text class="s" x="192" y="391" style="font-weight:700">획득</text>
+<rect x="262" y="378" width="16" height="16" rx="4" fill="var(--bad-bg)" stroke="var(--bad)"/>
+<text class="s" x="286" y="391" style="font-weight:700">막힘 (풀리지 않음)</text>
+<rect x="430" y="378" width="16" height="16" rx="4" fill="var(--hw-bg)" stroke="var(--hw)"/>
+<text class="s" x="454" y="391" style="font-weight:700">대기 (곧 풀림)</text>
+</svg>
+</figure>
+</body>
+</html>
