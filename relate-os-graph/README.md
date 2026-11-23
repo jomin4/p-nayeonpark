@@ -109,7 +109,7 @@ relate 공식 스킬을 사용자 전체(`~/.claude/skills`)가 아니라 이 �
 
 ![Dashboard](docs/images/dashboard.png)
 
-[docs/dashboard/index.html](docs/dashboard/index.html)을 브라우저로 열면 그래프 전체를 대화형으로 볼 수 있다(그래프 렌더링에 d3 CDN을 쓰므로 인터넷 연결 필요).
+온라인: **https://jomin4.github.io/p-nayeonpark/** (GitHub Pages, `main` 브랜치 루트에서 배포). 로컬에서는 [docs/dashboard/index.html](docs/dashboard/index.html)을 브라우저로 열면 그래프 전체를 대화형으로 볼 수 있다(그래프 렌더링에 d3 CDN을 쓰므로 인터넷 연결 필요).
 
 - **개념 지도**: 249개 개념과 416개 선수 관계를 영역별로 모아 그린 네트워크. 점을 누르면 가장 긴 학습 경로, 선행·후행 개념, 헷갈리는 개념, 시각화 썸네일, 질문, 예제, 자료가 카드로 열린다.
 - **단원별 개념 구성**(레벨 1·2·3 누적 막대), **단원 간 선수 관계**(13×13 히트맵), **미해결 질문**, **헷갈리기 쉬운 개념 쌍**, **단원 목록** 표.

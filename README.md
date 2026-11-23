@@ -3,6 +3,8 @@
 **Claude Code로 운영체제를 공부하고, 그 학습 결과물의 관계를 relate 임베디드 그래프 DB에 쌓아 Claude Code가 직접 관리하게 만든 프로젝트.**
 쌓인 그래프를 바탕으로 대화형 대시보드까지 만들었다.
 
+**▶ 대시보드 바로 보기: https://jomin4.github.io/p-nayeonpark/**
+
 ![relate](https://img.shields.io/badge/relate-1.2.0-1D9E75) ![Cypher](https://img.shields.io/badge/Cypher-25-534AB7) ![Claude Code](https://img.shields.io/badge/Claude_Code-MCP-D97757) ![d3](https://img.shields.io/badge/d3-7.9-F9A03C)
 
 ![대시보드](relate-os-graph/docs/images/dashboard.png)
@@ -15,7 +17,7 @@
 |---|---|---|
 | 운영체제 **13개 단원** | 개념 **249** · 노드 **590** | 기술 블로그 **13편** |
 | 참고 자료 **113개** (OSTEP, 커널 문서, man7 등) | 관계 **2,575** (선수 관계 **416**, 그중 단원 간 **114**) | 시각화 **50장** (HTML 원본 + PNG) |
-| 질문 **77개** (미해결 **27**) · 예제 **62개** | 제약조건 17 · 인덱스 4 | [대화형 대시보드](relate-os-graph/docs/dashboard/index.html) |
+| 질문 **77개** (미해결 **27**) · 예제 **62개** | 제약조건 17 · 인덱스 4 | [대화형 대시보드](https://jomin4.github.io/p-nayeonpark/) (GitHub Pages) |
 
 - **재현 가능**: 그래프 DB 파일은 git에 두지 않는다. 레포의 파일만으로 [`rebuild-graph.ps1`](relate-os-graph/scripts/rebuild-graph.ps1)이 **4초** 만에 같은 그래프(노드 8종·관계 13종 수치 일치)를 다시 만든다.
 - **검증된 내용**: 글 속 계산(은행원 알고리즘, SRTF, 디스크 스케줄링, 주소 변환, inode 최대 크기 등)은 모두 다시 계산해 확인했고, 자료끼리 어긋나는 부분은 양쪽을 함께 적었다.
@@ -108,7 +110,7 @@ pwsh -File relate-os-graph/scripts/rebuild-graph.ps1
 claude
 ```
 
-- **대시보드**: [`relate-os-graph/docs/dashboard/index.html`](relate-os-graph/docs/dashboard/index.html)을 브라우저로 연다(d3를 CDN에서 받으므로 인터넷 필요).
+- **대시보드**: 온라인은 [GitHub Pages](https://jomin4.github.io/p-nayeonpark/), 로컬은 [`relate-os-graph/docs/dashboard/index.html`](relate-os-graph/docs/dashboard/index.html)을 브라우저로 연다(d3를 CDN에서 받으므로 인터넷 필요).
 - **새 단원·수정 후**: `python -I relate-os-graph/scripts/validate_topic.py --all` → 그래프 적재 → `python -I relate-os-graph/scripts/build_dashboard_data.py`
 - Claude Code가 MCP 서버로 그래프 파일을 열고 있는 동안에는 CLI로 쓸 수 없다(단일 writer). 재구축은 Claude Code를 닫고 하거나 `-Database`로 다른 경로를 준다.
 
