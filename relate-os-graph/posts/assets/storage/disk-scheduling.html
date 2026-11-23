@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disk Scheduling</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806;
+    --ret: #0F6E56; --ret-bg: #E1F5EE; --ret-ink: #04342C;
+    --blu: #185FA5; --blu-bg: #E6F1FB; --blu-ink: #042C53;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA;
+      --ret: #5DCAA5; --ret-bg: #04342C; --ret-ink: #E1F5EE;
+      --blu: #85B7EB; --blu-bg: #042C53; --blu-ink: #E6F1FB;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .l { fill: var(--ink); font-size: 13px; font-weight: 700; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .arr { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 716" role="img" aria-label="요청 큐 98, 183, 37, 122, 14, 124, 65, 67과 시작 헤드 위치 53(0 쪽으로 이동 중)에서 FCFS, SSTF, SCAN, C-SCAN, LOOK의 헤드 이동 경로와 총 이동 거리 비교">
+  <defs>
+    <marker id="ah-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+  </defs>
+  <text class="l" x="40" y="44">요청 큐</text>
+  <rect x="104" y="24" width="46" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t m" x="127" y="45" text-anchor="middle">98</text>
+  <rect x="158" y="24" width="46" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t m" x="181" y="45" text-anchor="middle">183</text>
+  <rect x="212" y="24" width="46" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t m" x="235" y="45" text-anchor="middle">37</text>
+  <rect x="266" y="24" width="46" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t m" x="289" y="45" text-anchor="middle">122</text>
+  <rect x="320" y="24" width="46" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t m" x="343" y="45" text-anchor="middle">14</text>
+  <rect x="374" y="24" width="46" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t m" x="397" y="45" text-anchor="middle">124</text>
+  <rect x="428" y="24" width="46" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t m" x="451" y="45" text-anchor="middle">65</text>
+  <rect x="482" y="24" width="46" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t m" x="505" y="45" text-anchor="middle">67</text>
+  <rect x="552" y="24" width="150" height="30" rx="10" fill="var(--core-bg)" stroke="var(--core)"/>
+  <path d="M564 34 L576 34 L570 44 Z" fill="var(--core)"/>
+  <text class="t" x="586" y="45" style="fill:var(--core-ink)">헤드 <tspan class="m">53</tspan> · 0 쪽</text>
+  <text class="s m" x="960" y="45" text-anchor="end">cylinder 0–199</text>
+  <line x1="210" y1="100" x2="700" y2="100" stroke="var(--muted)" stroke-width="1.4"/>
+  <line x1="210.0" y1="95" x2="210.0" y2="105" stroke="var(--muted)" stroke-width="1.4"/>
+  <text class="s m" x="210.0" y="88" text-anchor="middle">0</text>
+  <line x1="333.1" y1="95" x2="333.1" y2="105" stroke="var(--muted)" stroke-width="1.4"/>
+  <text class="s m" x="333.1" y="88" text-anchor="middle">50</text>
+  <line x1="456.2" y1="95" x2="456.2" y2="105" stroke="var(--muted)" stroke-width="1.4"/>
+  <text class="s m" x="456.2" y="88" text-anchor="middle">100</text>
+  <line x1="579.3" y1="95" x2="579.3" y2="105" stroke="var(--muted)" stroke-width="1.4"/>
+  <text class="s m" x="579.3" y="88" text-anchor="middle">150</text>
+  <line x1="700.0" y1="95" x2="700.0" y2="105" stroke="var(--muted)" stroke-width="1.4"/>
+  <text class="s m" x="700.0" y="88" text-anchor="middle">199</text>
+  <text class="s" x="825" y="88" text-anchor="middle" style="font-weight:700">총 이동 거리</text>
+  <line x1="244.5" y1="106" x2="244.5" y2="670" stroke="var(--stroke)" stroke-width="1" stroke-dasharray="2 4"/>
+  <line x1="301.1" y1="106" x2="301.1" y2="670" stroke="var(--stroke)" stroke-width="1" stroke-dasharray="2 4"/>
+  <line x1="370.1" y1="106" x2="370.1" y2="670" stroke="var(--stroke)" stroke-width="1" stroke-dasharray="2 4"/>
+  <line x1="375.0" y1="106" x2="375.0" y2="670" stroke="var(--stroke)" stroke-width="1" stroke-dasharray="2 4"/>
+  <line x1="451.3" y1="106" x2="451.3" y2="670" stroke="var(--stroke)" stroke-width="1" stroke-dasharray="2 4"/>
+  <line x1="510.4" y1="106" x2="510.4" y2="670" stroke="var(--stroke)" stroke-width="1" stroke-dasharray="2 4"/>
+  <line x1="515.3" y1="106" x2="515.3" y2="670" stroke="var(--stroke)" stroke-width="1" stroke-dasharray="2 4"/>
+  <line x1="660.6" y1="106" x2="660.6" y2="670" stroke="var(--stroke)" stroke-width="1" stroke-dasharray="2 4"/>
+  <line x1="340.5" y1="106" x2="340.5" y2="670" stroke="var(--core)" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.7"/>
+  <rect x="30" y="122" width="940" height="100" rx="14" fill="var(--lane)" fill-opacity="0.85"/>
+  <text class="t m" x="48" y="166">FCFS</text>
+  <text class="s" x="48" y="186">선착순</text>
+  <line x1="340.5" y1="134.0" x2="451.3" y2="143.5" stroke="var(--bad)" stroke-width="2.2"/>
+  <line x1="451.3" y1="143.5" x2="660.6" y2="153.0" stroke="var(--bad)" stroke-width="2.2"/>
+  <line x1="660.6" y1="153.0" x2="301.1" y2="162.5" stroke="var(--bad)" stroke-width="2.2"/>
+  <line x1="301.1" y1="162.5" x2="510.4" y2="172.0" stroke="var(--bad)" stroke-width="2.2"/>
+  <line x1="510.4" y1="172.0" x2="244.5" y2="181.5" stroke="var(--bad)" stroke-width="2.2"/>
+  <line x1="244.5" y1="181.5" x2="515.3" y2="191.0" stroke="var(--bad)" stroke-width="2.2"/>
+  <line x1="515.3" y1="191.0" x2="370.1" y2="200.5" stroke="var(--bad)" stroke-width="2.2"/>
+  <line x1="370.1" y1="200.5" x2="375.0" y2="210.0" stroke="var(--bad)" stroke-width="2.2"/>
+  <path d="M334.5 129.0 L346.5 129.0 L340.5 139.0 Z" fill="var(--core)"/>
+  <circle cx="451.3" cy="143.5" r="4.2" fill="var(--card)" stroke="var(--bad)" stroke-width="2"/>
+  <circle cx="660.6" cy="153.0" r="4.2" fill="var(--card)" stroke="var(--bad)" stroke-width="2"/>
+  <circle cx="301.1" cy="162.5" r="4.2" fill="var(--card)" stroke="var(--bad)" stroke-width="2"/>
+  <circle cx="510.4" cy="172.0" r="4.2" fill="var(--card)" stroke="var(--bad)" stroke-width="2"/>
+  <circle cx="244.5" cy="181.5" r="4.2" fill="var(--card)" stroke="var(--bad)" stroke-width="2"/>
+  <circle cx="515.3" cy="191.0" r="4.2" fill="var(--card)" stroke="var(--bad)" stroke-width="2"/>
+  <circle cx="370.1" cy="200.5" r="4.2" fill="var(--card)" stroke="var(--bad)" stroke-width="2"/>
+  <circle cx="375.0" cy="210.0" r="4.2" fill="var(--card)" stroke="var(--bad)" stroke-width="2"/>
+  <rect x="740" y="152" width="170.0" height="28" rx="6" fill="var(--bad)"/>
+  <text class="t m" x="920.0" y="172">640</text>
+  <rect x="30" y="234" width="940" height="100" rx="14" fill="var(--lane)" fill-opacity="0.85"/>
+  <text class="t m" x="48" y="278">SSTF</text>
+  <text class="s" x="48" y="298">최단 탐색 우선</text>
+  <line x1="340.5" y1="246.0" x2="370.1" y2="255.5" stroke="var(--hw)" stroke-width="2.2"/>
+  <line x1="370.1" y1="255.5" x2="375.0" y2="265.0" stroke="var(--hw)" stroke-width="2.2"/>
+  <line x1="375.0" y1="265.0" x2="301.1" y2="274.5" stroke="var(--hw)" stroke-width="2.2"/>
+  <line x1="301.1" y1="274.5" x2="244.5" y2="284.0" stroke="var(--hw)" stroke-width="2.2"/>
+  <line x1="244.5" y1="284.0" x2="451.3" y2="293.5" stroke="var(--hw)" stroke-width="2.2"/>
+  <line x1="451.3" y1="293.5" x2="510.4" y2="303.0" stroke="var(--hw)" stroke-width="2.2"/>
+  <line x1="510.4" y1="303.0" x2="515.3" y2="312.5" stroke="var(--hw)" stroke-width="2.2"/>
+  <line x1="515.3" y1="312.5" x2="660.6" y2="322.0" stroke="var(--hw)" stroke-width="2.2"/>
+  <path d="M334.5 241.0 L346.5 241.0 L340.5 251.0 Z" fill="var(--core)"/>
+  <circle cx="370.1" cy="255.5" r="4.2" fill="var(--card)" stroke="var(--hw)" stroke-width="2"/>
+  <circle cx="375.0" cy="265.0" r="4.2" fill="var(--card)" stroke="var(--hw)" stroke-width="2"/>
+  <circle cx="301.1" cy="274.5" r="4.2" fill="var(--card)" stroke="var(--hw)" stroke-width="2"/>
+  <circle cx="244.5" cy="284.0" r="4.2" fill="var(--card)" stroke="var(--hw)" stroke-width="2"/>
+  <circle cx="451.3" cy="293.5" r="4.2" fill="var(--card)" stroke="var(--hw)" stroke-width="2"/>
+  <circle cx="510.4" cy="303.0" r="4.2" fill="var(--card)" stroke="var(--hw)" stroke-width="2"/>
+  <circle cx="515.3" cy="312.5" r="4.2" fill="var(--card)" stroke="var(--hw)" stroke-width="2"/>
+  <circle cx="660.6" cy="322.0" r="4.2" fill="var(--card)" stroke="var(--hw)" stroke-width="2"/>
+  <rect x="740" y="264" width="62.7" height="28" rx="6" fill="var(--hw)"/>
+  <text class="t m" x="812.7" y="284">236</text>
+  <rect x="30" y="346" width="940" height="100" rx="14" fill="var(--lane)" fill-opacity="0.85"/>
+  <text class="t m" x="48" y="390">SCAN</text>
+  <text class="s" x="48" y="410">엘리베이터</text>
+  <line x1="340.5" y1="358.0" x2="301.1" y2="366.4" stroke="var(--core)" stroke-width="2.2"/>
+  <line x1="301.1" y1="366.4" x2="244.5" y2="374.9" stroke="var(--core)" stroke-width="2.2"/>
+  <line x1="244.5" y1="374.9" x2="210.0" y2="383.3" stroke="var(--core)" stroke-width="2.2"/>
+  <line x1="210.0" y1="383.3" x2="370.1" y2="391.8" stroke="var(--core)" stroke-width="2.2"/>
+  <line x1="370.1" y1="391.8" x2="375.0" y2="400.2" stroke="var(--core)" stroke-width="2.2"/>
+  <line x1="375.0" y1="400.2" x2="451.3" y2="408.7" stroke="var(--core)" stroke-width="2.2"/>
+  <line x1="451.3" y1="408.7" x2="510.4" y2="417.1" stroke="var(--core)" stroke-width="2.2"/>
+  <line x1="510.4" y1="417.1" x2="515.3" y2="425.6" stroke="var(--core)" stroke-width="2.2"/>
+  <line x1="515.3" y1="425.6" x2="660.6" y2="434.0" stroke="var(--core)" stroke-width="2.2"/>
+  <path d="M334.5 353.0 L346.5 353.0 L340.5 363.0 Z" fill="var(--core)"/>
+  <circle cx="301.1" cy="366.4" r="4.2" fill="var(--card)" stroke="var(--core)" stroke-width="2"/>
+  <circle cx="244.5" cy="374.9" r="4.2" fill="var(--card)" stroke="var(--core)" stroke-width="2"/>
+  <rect x="206.5" y="379.8" width="7" height="7" fill="var(--core)"/>
+  <circle cx="370.1" cy="391.8" r="4.2" fill="var(--card)" stroke="var(--core)" stroke-width="2"/>
+  <circle cx="375.0" cy="400.2" r="4.2" fill="var(--card)" stroke="var(--core)" stroke-width="2"/>
+  <circle cx="451.3" cy="408.7" r="4.2" fill="var(--card)" stroke="var(--core)" stroke-width="2"/>
+  <circle cx="510.4" cy="417.1" r="4.2" fill="var(--card)" stroke="var(--core)" stroke-width="2"/>
+  <circle cx="515.3" cy="425.6" r="4.2" fill="var(--card)" stroke="var(--core)" stroke-width="2"/>
+  <circle cx="660.6" cy="434.0" r="4.2" fill="var(--card)" stroke="var(--core)" stroke-width="2"/>
+  <rect x="740" y="376" width="62.7" height="28" rx="6" fill="var(--core)"/>
+  <text class="t m" x="812.7" y="396">236</text>
+  <rect x="30" y="458" width="940" height="100" rx="14" fill="var(--lane)" fill-opacity="0.85"/>
+  <text class="t m" x="48" y="502">C-SCAN</text>
+  <text class="s" x="48" y="522">원형 SCAN</text>
+  <line x1="340.5" y1="470.0" x2="301.1" y2="477.6" stroke="var(--blu)" stroke-width="2.2"/>
+  <line x1="301.1" y1="477.6" x2="244.5" y2="485.2" stroke="var(--blu)" stroke-width="2.2"/>
+  <line x1="244.5" y1="485.2" x2="210.0" y2="492.8" stroke="var(--blu)" stroke-width="2.2"/>
+  <line x1="210.0" y1="492.8" x2="700.0" y2="500.4" stroke="var(--blu)" stroke-width="2.2" stroke-dasharray="5 5"/>
+  <line x1="700.0" y1="500.4" x2="660.6" y2="508.0" stroke="var(--blu)" stroke-width="2.2"/>
+  <line x1="660.6" y1="508.0" x2="515.3" y2="515.6" stroke="var(--blu)" stroke-width="2.2"/>
+  <line x1="515.3" y1="515.6" x2="510.4" y2="523.2" stroke="var(--blu)" stroke-width="2.2"/>
+  <line x1="510.4" y1="523.2" x2="451.3" y2="530.8" stroke="var(--blu)" stroke-width="2.2"/>
+  <line x1="451.3" y1="530.8" x2="375.0" y2="538.4" stroke="var(--blu)" stroke-width="2.2"/>
+  <line x1="375.0" y1="538.4" x2="370.1" y2="546.0" stroke="var(--blu)" stroke-width="2.2"/>
+  <path d="M334.5 465.0 L346.5 465.0 L340.5 475.0 Z" fill="var(--core)"/>
+  <circle cx="301.1" cy="477.6" r="4.2" fill="var(--card)" stroke="var(--blu)" stroke-width="2"/>
+  <circle cx="244.5" cy="485.2" r="4.2" fill="var(--card)" stroke="var(--blu)" stroke-width="2"/>
+  <rect x="206.5" y="489.3" width="7" height="7" fill="var(--blu)"/>
+  <rect x="696.5" y="496.9" width="7" height="7" fill="var(--blu)"/>
+  <circle cx="660.6" cy="508.0" r="4.2" fill="var(--card)" stroke="var(--blu)" stroke-width="2"/>
+  <circle cx="515.3" cy="515.6" r="4.2" fill="var(--card)" stroke="var(--blu)" stroke-width="2"/>
+  <circle cx="510.4" cy="523.2" r="4.2" fill="var(--card)" stroke="var(--blu)" stroke-width="2"/>
+  <circle cx="451.3" cy="530.8" r="4.2" fill="var(--card)" stroke="var(--blu)" stroke-width="2"/>
+  <circle cx="375.0" cy="538.4" r="4.2" fill="var(--card)" stroke="var(--blu)" stroke-width="2"/>
+  <circle cx="370.1" cy="546.0" r="4.2" fill="var(--card)" stroke="var(--blu)" stroke-width="2"/>
+  <rect x="740" y="488" width="49.7" height="28" rx="6" fill="var(--blu)"/>
+  <rect x="789.7" y="488" width="52.9" height="28" rx="6" fill="var(--blu-bg)" stroke="var(--blu)" stroke-dasharray="4 3"/>
+  <text class="s m" x="816.1" y="536" text-anchor="middle">+199</text>
+  <text class="t m" x="852.5" y="508">386</text>
+  <rect x="30" y="570" width="940" height="100" rx="14" fill="var(--lane)" fill-opacity="0.85"/>
+  <text class="t m" x="48" y="614">LOOK</text>
+  <text class="s" x="48" y="634">마지막 요청에서 반전</text>
+  <line x1="340.5" y1="582.0" x2="301.1" y2="591.5" stroke="var(--ret)" stroke-width="2.2"/>
+  <line x1="301.1" y1="591.5" x2="244.5" y2="601.0" stroke="var(--ret)" stroke-width="2.2"/>
+  <line x1="244.5" y1="601.0" x2="370.1" y2="610.5" stroke="var(--ret)" stroke-width="2.2"/>
+  <line x1="370.1" y1="610.5" x2="375.0" y2="620.0" stroke="var(--ret)" stroke-width="2.2"/>
+  <line x1="375.0" y1="620.0" x2="451.3" y2="629.5" stroke="var(--ret)" stroke-width="2.2"/>
+  <line x1="451.3" y1="629.5" x2="510.4" y2="639.0" stroke="var(--ret)" stroke-width="2.2"/>
+  <line x1="510.4" y1="639.0" x2="515.3" y2="648.5" stroke="var(--ret)" stroke-width="2.2"/>
+  <line x1="515.3" y1="648.5" x2="660.6" y2="658.0" stroke="var(--ret)" stroke-width="2.2"/>
+  <path d="M334.5 577.0 L346.5 577.0 L340.5 587.0 Z" fill="var(--core)"/>
+  <circle cx="301.1" cy="591.5" r="4.2" fill="var(--card)" stroke="var(--ret)" stroke-width="2"/>
+  <circle cx="244.5" cy="601.0" r="4.2" fill="var(--card)" stroke="var(--ret)" stroke-width="2"/>
+  <circle cx="370.1" cy="610.5" r="4.2" fill="var(--card)" stroke="var(--ret)" stroke-width="2"/>
+  <circle cx="375.0" cy="620.0" r="4.2" fill="var(--card)" stroke="var(--ret)" stroke-width="2"/>
+  <circle cx="451.3" cy="629.5" r="4.2" fill="var(--card)" stroke="var(--ret)" stroke-width="2"/>
+  <circle cx="510.4" cy="639.0" r="4.2" fill="var(--card)" stroke="var(--ret)" stroke-width="2"/>
+  <circle cx="515.3" cy="648.5" r="4.2" fill="var(--card)" stroke="var(--ret)" stroke-width="2"/>
+  <circle cx="660.6" cy="658.0" r="4.2" fill="var(--card)" stroke="var(--ret)" stroke-width="2"/>
+  <rect x="740" y="600" width="55.2" height="28" rx="6" fill="var(--ret)"/>
+  <rect x="801.2" y="599" width="52" height="30" rx="15" fill="var(--card)" stroke="var(--ret)" stroke-width="1.8"/>
+  <text class="t m" x="827.2" y="620" text-anchor="middle" style="fill:var(--ret)">208</text>
+  <path d="M204 690 L216 690 L210 700 Z" fill="var(--core)"/>
+  <text class="s" x="224" y="699">시작</text>
+  <circle cx="276" cy="695" r="4.2" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/>
+  <text class="s" x="288" y="699">요청 처리</text>
+  <rect x="360" y="691" width="7" height="7" fill="var(--ink)"/>
+  <text class="s" x="374" y="699">디스크 끝</text>
+  <line x1="446" y1="695" x2="486" y2="695" stroke="var(--ink)" stroke-width="2" stroke-dasharray="5 5"/>
+  <text class="s" x="494" y="699">처리 없이 복귀</text>
+</svg>
+</figure>
+</body>
+</html>

@@ -1,0 +1,106 @@
+{
+  "topic": "storage",
+  "session": {
+    "id": "2026-11-23-10",
+    "date": "2026-11-23",
+    "summary": "10단원 대용량 저장장치. HDD 구조(플래터·트랙·섹터·실린더·헤드)와 CHS·LBA, 접근 시간 = 탐색 + 회전 지연 + 전송(Cheetah 15K.5와 Barracuda 수치로 4KB 무작위 읽기 6.0ms·13.2ms를 직접 계산), NAND 플래시의 페이지 쓰기·블록 지우기와 로그 구조 FTL·가비지 컬렉션(쓰기 증폭 8/6 예제)·웨어 레벨링·TRIM, 같은 요청 큐로 계산한 FCFS 640·SSTF 236·SCAN 236·C-SCAN 386·LOOK 208 실린더 비교와 SSD에서 스케줄링 의미가 줄어드는 이유, 리눅스 blk-mq의 mq-deadline·none, RAID 0·1·5·6·10의 용량·내결함성·성능과 XOR 패리티 복구를 정리했다. OSTEP 37·38·44장, UIC 강의 노트, 리눅스 커널 문서 3개, man7 fstrim, 위키백과 4개 문서를 참고했다."
+  },
+  "concepts": [
+    {"slug": "hdd", "name": "하드 디스크 드라이브", "level": 1, "summary": "자성 물질을 입힌 원판(플래터)을 일정 속도로 돌리고 암 끝의 헤드로 읽고 쓰는 저장장치. 기계적으로 움직이므로 무작위 접근이 순차 접근보다 수백 배 느리다 (HDD)"},
+    {"slug": "disk-geometry", "name": "디스크 구조", "level": 1, "summary": "플래터의 각 면(표면)에 동심원 트랙이 있고, 트랙은 섹터(보통 512바이트)로 나뉘며, 모든 플래터에서 같은 위치의 트랙을 묶어 실린더라 한다. 운영체제는 이를 0~n-1번 섹터 배열(LBA)로 본다"},
+    {"slug": "seek-time", "name": "탐색 시간", "level": 2, "summary": "암을 움직여 헤드를 원하는 트랙에 올려놓는 시간. 가속·등속·감속·안착(0.5~2ms) 단계가 있고, 평균 탐색 거리는 전체 거리의 약 1/3이다 (seek time)"},
+    {"slug": "rotational-latency", "name": "회전 지연", "level": 2, "summary": "헤드가 트랙에 도착한 뒤 원하는 섹터가 헤드 밑으로 돌아올 때까지 기다리는 시간. 평균은 반 바퀴로, 7,200 RPM이면 약 4.17ms다 (rotational delay)"},
+    {"slug": "disk-access-time", "name": "디스크 접근 시간", "level": 2, "summary": "요청 하나를 처리하는 시간 T = 탐색 시간 + 회전 지연 + 전송 시간. 작은 무작위 읽기는 탐색·회전이 거의 전부이고, 큰 순차 읽기는 전송이 거의 전부다"},
+    {"slug": "ssd", "name": "SSD", "level": 1, "summary": "움직이는 부품 없이 NAND 플래시 칩 여러 개와 컨트롤러(FTL)로 만든 저장장치. 위치와 상관없이 빠르게 읽지만, 덮어쓰기를 직접 할 수 없어 내부에서 쓰기를 관리해야 한다 (solid-state drive)"},
+    {"slug": "nand-flash", "name": "NAND 플래시", "level": 2, "summary": "트랜지스터에 갇힌 전하로 비트를 저장하는 비휘발성 메모리. 읽기·프로그램은 페이지(수 KB) 단위, 지우기는 블록(128~256KB) 단위이고, 프로그램한 페이지는 블록을 지우기 전에는 다시 쓸 수 없으며 P/E 횟수가 한정돼 있다"},
+    {"slug": "ftl", "name": "플래시 변환 계층", "level": 2, "summary": "논리 블록 읽기·쓰기를 플래시의 읽기·지우기·프로그램 명령으로 바꾸는 SSD 펌웨어. 대부분 로그 구조로, 새 쓰기를 빈 페이지에 덧붙이고 매핑 테이블로 논리→물리 위치를 기록한다 (FTL)"},
+    {"slug": "ssd-garbage-collection", "name": "SSD 가비지 컬렉션", "level": 3, "summary": "덮어쓰기로 생긴 옛 버전 페이지(쓰레기)를 회수하는 FTL 작업. 쓰레기가 있는 블록에서 살아 있는 페이지를 읽어 로그 끝에 다시 쓰고 그 블록을 지운다"},
+    {"slug": "write-amplification", "name": "쓰기 증폭", "level": 3, "summary": "FTL이 플래시에 실제로 쓴 바이트 수 ÷ 호스트가 SSD에 요청한 바이트 수. 가비지 컬렉션과 웨어 레벨링의 복사 때문에 1보다 커지고, 클수록 성능과 수명이 나빠진다"},
+    {"slug": "wear-leveling", "name": "웨어 레벨링", "level": 2, "summary": "지우기·프로그램이 특정 블록에 몰려 그 블록만 먼저 닳지 않도록 쓰기를 전체 블록에 고르게 퍼뜨리는 FTL 기법. 오래 안 바뀌는 데이터도 가끔 옮겨 그 블록이 쓰기를 나눠 받게 한다"},
+    {"slug": "trim", "name": "TRIM", "level": 2, "summary": "파일 시스템이 더 이상 쓰지 않는 블록 범위를 장치에 알려 주는 명령. SSD는 그 매핑을 지우고 가비지 컬렉션 때 복사하지 않아도 된다. 리눅스에서는 fstrim이나 discard 마운트 옵션으로 보낸다"},
+    {"slug": "disk-scheduling", "name": "디스크 스케줄링", "level": 2, "summary": "대기 중인 입출력 요청 중 다음에 처리할 것을 고르는 일. HDD에서는 요청마다 걸릴 시간(탐색·회전)을 추정할 수 있어 SJF처럼 가까운 요청부터 처리하려 한다"},
+    {"slug": "sstf", "name": "최단 탐색 시간 우선", "level": 2, "summary": "현재 헤드 위치에서 가장 가까운 트랙의 요청부터 처리하는 디스크 스케줄링. 총 이동 거리는 줄지만 가까운 요청이 계속 들어오면 먼 요청이 기아에 빠진다 (SSTF)"},
+    {"slug": "scan-scheduling", "name": "SCAN 스케줄링", "level": 2, "summary": "헤드가 디스크 한쪽 끝에서 반대쪽 끝까지 한 방향으로 쓸면서 지나가는 요청을 처리하고, 끝에 닿으면 방향을 바꾸는 방식. 엘리베이터 알고리즘이라고도 하며 기아를 막는다"},
+    {"slug": "c-scan", "name": "C-SCAN 스케줄링", "level": 2, "summary": "한 방향으로만 쓸면서 요청을 처리하고, 끝에 닿으면 요청을 처리하지 않고 처음 끝으로 돌아가 다시 시작하는 SCAN 변형. 가운데 트랙을 우대하는 SCAN보다 대기 시간이 고르다 (circular SCAN)"},
+    {"slug": "look-scheduling", "name": "LOOK 스케줄링", "level": 2, "summary": "SCAN처럼 한 방향으로 쓸되 디스크 끝까지 가지 않고 그 방향의 마지막 요청에서 방향을 바꾸는 방식. C-LOOK은 C-SCAN을 같은 식으로 고친 것이다"},
+    {"slug": "linux-io-scheduler", "name": "리눅스 I/O 스케줄러", "level": 3, "summary": "블록 계층(blk-mq)에서 요청을 합치고 재배열하는 교체 가능한 모듈. /sys/block/<장치>/queue/scheduler로 mq-deadline, kyber, bfq, none 중에서 고르며, none은 재배열하지 않는다"},
+    {"slug": "raid", "name": "RAID", "level": 1, "summary": "여러 디스크를 묶어 바깥에는 크고 빠르고 믿을 만한 디스크 하나처럼 보이게 하는 기법. 레벨(0 스트라이핑, 1 미러링, 5·6 패리티, 10 미러 위 스트라이핑)마다 용량·내결함성·성능이 다르다 (Redundant Array of Inexpensive Disks)"},
+    {"slug": "raid-parity", "name": "RAID 패리티", "level": 2, "summary": "한 스트라이프의 데이터 블록을 비트별로 XOR한 값을 저장해, 디스크 하나를 잃으면 나머지를 다시 XOR해 복구하는 중복 방식. 작은 쓰기마다 옛 데이터·옛 패리티를 읽고 새로 써야 해서 I/O가 4번 든다"}
+  ],
+  "prerequisites": [
+    {"from": "hdd", "to": "disk-geometry"},
+    {"from": "disk-geometry", "to": "seek-time"},
+    {"from": "disk-geometry", "to": "rotational-latency"},
+    {"from": "seek-time", "to": "disk-access-time"},
+    {"from": "rotational-latency", "to": "disk-access-time"},
+    {"from": "disk-access-time", "to": "disk-scheduling"},
+    {"from": "fcfs", "to": "disk-scheduling"},
+    {"from": "disk-scheduling", "to": "sstf"},
+    {"from": "starvation", "to": "sstf"},
+    {"from": "sstf", "to": "scan-scheduling"},
+    {"from": "scan-scheduling", "to": "c-scan"},
+    {"from": "scan-scheduling", "to": "look-scheduling"},
+    {"from": "disk-scheduling", "to": "linux-io-scheduler"},
+    {"from": "ssd", "to": "linux-io-scheduler"},
+    {"from": "device-driver", "to": "linux-io-scheduler"},
+    {"from": "hdd", "to": "ssd"},
+    {"from": "ssd", "to": "nand-flash"},
+    {"from": "nand-flash", "to": "ftl"},
+    {"from": "ftl", "to": "ssd-garbage-collection"},
+    {"from": "ftl", "to": "wear-leveling"},
+    {"from": "ssd-garbage-collection", "to": "write-amplification"},
+    {"from": "ssd-garbage-collection", "to": "trim"},
+    {"from": "hdd", "to": "raid"},
+    {"from": "disk-access-time", "to": "raid"},
+    {"from": "raid", "to": "raid-parity"},
+    {"from": "disk-access-time", "to": "file-allocation"}
+  ],
+  "confusedWith": [
+    {"a": "seek-time", "b": "rotational-latency", "note": "탐색은 암이 트랙 사이를 움직이는 시간(반지름 방향), 회전 지연은 트랙에 도착한 뒤 섹터가 돌아오길 기다리는 시간(원주 방향)이다. 둘 다 위치 잡기 비용이고 현대 디스크에서는 크기가 비슷하다"},
+    {"a": "scan-scheduling", "b": "c-scan", "note": "SCAN은 양방향으로 쓸며 돌아오는 길에도 요청을 처리한다. C-SCAN은 한 방향으로만 처리하고 처리 없이 처음으로 돌아가므로 총 이동 거리는 늘지만 가장자리 트랙이 덜 불리하다"},
+    {"a": "scan-scheduling", "b": "look-scheduling", "note": "SCAN은 요청이 없어도 디스크 끝(0이나 마지막 실린더)까지 간다. LOOK은 그 방향의 마지막 요청에서 바로 돌아선다. 교재마다 SCAN을 LOOK처럼 설명하는 경우도 있다"},
+    {"a": "ssd-garbage-collection", "b": "trim", "note": "가비지 컬렉션은 SSD 안에서 쓰레기 페이지를 회수하는 작업이고, TRIM은 호스트가 '이 범위는 이제 안 쓴다'고 알려 주는 명령이다. TRIM이 있으면 GC가 지운 파일의 페이지를 살아 있는 것으로 여겨 복사하지 않는다"},
+    {"a": "nand-flash", "b": "paging", "note": "플래시의 페이지(쓰기 단위)와 블록(지우기 단위)은 가상 메모리의 페이지나 디스크·파일 시스템의 블록과 이름만 같고 뜻이 다르다. 플래시에서는 블록이 페이지를 여러 개 담는 더 큰 단위다"}
+  ],
+  "questions": [
+    {"id": "2026-11-23-10-q1", "text": "7,200 RPM, 평균 탐색 9ms, 최대 전송률 105MB/s인 Barracuda에서 4KB 무작위 읽기 한 번은 얼마나 걸리고, 처리율은 얼마인가?", "answered": true, "answer": "한 바퀴는 60,000/7,200 = 8.33ms라 평균 회전 지연은 반 바퀴 4.17ms다. 전송은 4KB ÷ 105MB/s ≈ 0.04ms다. T ≈ 9 + 4.17 + 0.04 = 13.2ms이고 처리율은 4KB/13.2ms ≈ 0.30MB/s다. 같은 디스크로 100MB를 순차로 읽으면 약 965ms(≈104MB/s)라 300배 넘게 차이 난다.", "about": ["disk-access-time", "seek-time", "rotational-latency"]},
+    {"id": "2026-11-23-10-q2", "text": "실린더 0~199, 헤드 53(0 쪽으로 이동 중), 요청 큐 98, 183, 37, 122, 14, 124, 65, 67에서 각 알고리즘의 총 헤드 이동 거리는?", "answered": true, "answer": "FCFS 640, SSTF 236(53→65→67→37→14→98→122→124→183), SCAN 236(0까지 갔다가 반전), LOOK 208(14에서 반전), C-SCAN 386(복귀 199 포함, 빼면 187), C-LOOK 326(14→183 점프 169 포함, 빼면 157). 파이썬으로 다시 계산해 확인했고 FCFS 640, SSTF 236은 UIC 강의 노트 값과 같다.", "about": ["disk-scheduling", "sstf", "scan-scheduling", "c-scan", "look-scheduling"]},
+    {"id": "2026-11-23-10-q3", "text": "블록당 4페이지인 SSD에 논리 블록 100, 101, 2000, 2001을 쓰고 100, 101을 덮어쓴 뒤 블록 0을 GC하면 쓰기 증폭은 얼마인가?", "answered": true, "answer": "호스트는 6페이지를 썼다. 플래시는 첫 쓰기 4페이지, 덮어쓰기 2페이지, GC가 살아 있는 2000·2001을 옮기며 2페이지를 프로그램해 8페이지를 썼다. 쓰기 증폭은 8/6 ≈ 1.33이고, 그 사이 블록 지우기가 2번(블록 1, 블록 0) 일어났다.", "about": ["write-amplification", "ssd-garbage-collection", "ftl"]},
+    {"id": "2026-11-23-10-q4", "text": "RAID 5에서 디스크 하나가 고장 나면 어떻게 복구하고, 작은 쓰기 한 번에 왜 I/O가 4번 드는가?", "answered": true, "answer": "같은 스트라이프의 남은 데이터 블록과 패리티 블록을 모두 XOR하면 잃은 블록이 나온다(예: 0110 ⊕ 1011 ⊕ 0001 = 1100). 작은 쓰기는 P_new = (D_old ⊕ D_new) ⊕ P_old 로 패리티를 고치므로 옛 데이터·옛 패리티 읽기 2번과 새 데이터·새 패리티 쓰기 2번이 필요하다.", "about": ["raid-parity", "raid"]},
+    {"id": "2026-11-23-10-q5", "text": "리눅스는 장치마다 기본 I/O 스케줄러(mq-deadline, none 등)를 어떤 기준으로 정하는가? NVMe SSD와 SATA HDD의 기본값은 각각 무엇인가?", "answered": false, "answer": null, "about": ["linux-io-scheduler", "ssd"]},
+    {"id": "2026-11-23-10-q6", "text": "용량이 큰 HDD로 만든 RAID 5에서 디스크 하나를 재구축하는 동안 다른 디스크의 읽기 오류(URE) 때문에 재구축이 실패할 위험은 실제로 얼마나 큰가?", "answered": false, "answer": null, "about": ["raid", "raid-parity"]}
+  ],
+  "examples": [
+    {"id": "disk-access-time-ex1", "concept": "disk-access-time", "kind": "code", "body": "# 4KB 무작위 읽기 접근 시간 (OSTEP의 Barracuda 사양)\nrpm, seek_ms, mb_per_s = 7200, 9.0, 105\nrot_ms = 60_000 / rpm / 2           # 평균 반 바퀴 = 4.17ms\nxfer_ms = 4 / 1024 / mb_per_s * 1000  # 4KB 전송 = 0.037ms\nt = seek_ms + rot_ms + xfer_ms\nprint(f\"T = {t:.1f} ms, {4/1024/(t/1000):.2f} MB/s\")  # T = 13.2 ms, 0.30 MB/s"},
+    {"id": "scan-scheduling-ex1", "concept": "scan-scheduling", "kind": "analogy", "body": "엘리베이터: 10층에서 1층으로 내려가는 중에 3층에서 탄 사람이 4층을 눌러도, 엘리베이터는 '더 가깝다'고 4층으로 올라가지 않는다. 1층까지 내려간 뒤에야 방향을 바꾼다. 그래서 아무도 무한정 기다리지 않는다."},
+    {"id": "ftl-ex1", "concept": "ftl", "kind": "analogy", "body": "칸마다 한 번만 쓸 수 있는 공책: 내용을 고치려면 몇 쪽 묶음(블록)을 통째로 지워야 한다. 그래서 고친 내용은 빈 칸에 새로 쓰고 앞쪽 목차(매핑 테이블)의 쪽 번호만 바꾼다. 옛 칸은 나중에 묶음째 정리(가비지 컬렉션)한다."},
+    {"id": "raid-parity-ex1", "concept": "raid-parity", "kind": "code", "body": "#include <stdio.h>\n#include <stddef.h>\n\n/* 패리티 = 모든 데이터 블록의 XOR. 잃은 블록 = 나머지 블록과 패리티의 XOR */\nvoid xor_into(unsigned char *dst, const unsigned char *src, size_t n) {\n    for (size_t i = 0; i < n; i++) dst[i] ^= src[i];\n}\n\nint main(void) {\n    unsigned char d0[1] = {0x6}, d1[1] = {0xC}, d2[1] = {0xB}; /* 0110 1100 1011 */\n    unsigned char p[1] = {0};\n    xor_into(p, d0, 1); xor_into(p, d1, 1); xor_into(p, d2, 1);  /* p = 0001 */\n    unsigned char rec[1] = {0};                                    /* d1을 잃었다고 가정 */\n    xor_into(rec, d0, 1); xor_into(rec, d2, 1); xor_into(rec, p, 1);\n    printf(\"parity=%X recovered=%X\\n\", p[0], rec[0]);              /* parity=1 recovered=C */\n    return 0;\n}"},
+    {"id": "linux-io-scheduler-ex1", "concept": "linux-io-scheduler", "kind": "code", "body": "# 현재 스케줄러는 대괄호로 표시된다 (docs.kernel.org 예시)\n$ cat /sys/block/sda/queue/scheduler\n[mq-deadline] kyber bfq none\n# 실행 중에 none으로 바꾸기 (root)\n# echo none > /sys/block/sda/queue/scheduler\n# cat /sys/block/sda/queue/scheduler\n[none] mq-deadline kyber bfq"}
+  ],
+  "sources": [
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/file-disks.pdf", "title": "OSTEP Ch.37 Hard Disk Drives", "kind": "book", "describes": ["hdd", "disk-geometry", "seek-time", "rotational-latency", "disk-access-time", "disk-scheduling", "sstf", "scan-scheduling", "c-scan", "starvation"]},
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/file-ssd.pdf", "title": "OSTEP Ch.44 Flash-based SSDs", "kind": "book", "describes": ["ssd", "nand-flash", "ftl", "ssd-garbage-collection", "write-amplification", "wear-leveling", "trim"]},
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/file-raid.pdf", "title": "OSTEP Ch.38 Redundant Arrays of Inexpensive Disks (RAIDs)", "kind": "book", "describes": ["raid", "raid-parity"]},
+    {"url": "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/10_MassStorage.html", "title": "UIC CS 385 Course Notes: Mass-Storage Structure", "kind": "doc", "describes": ["disk-geometry", "rotational-latency", "disk-scheduling", "sstf", "scan-scheduling", "c-scan", "look-scheduling", "raid", "raid-parity"]},
+    {"url": "https://en.wikipedia.org/wiki/Cylinder-head-sector", "title": "Cylinder-head-sector - Wikipedia", "kind": "doc", "describes": ["disk-geometry", "hdd"]},
+    {"url": "https://en.wikipedia.org/wiki/Elevator_algorithm", "title": "Elevator algorithm - Wikipedia", "kind": "doc", "describes": ["scan-scheduling", "c-scan", "look-scheduling", "disk-scheduling"]},
+    {"url": "https://docs.kernel.org/block/blk-mq.html", "title": "Multi-Queue Block IO Queueing Mechanism (blk-mq) - The Linux Kernel documentation", "kind": "doc", "describes": ["linux-io-scheduler", "ssd"]},
+    {"url": "https://docs.kernel.org/block/switching-sched.html", "title": "Switching Scheduler - The Linux Kernel documentation", "kind": "doc", "describes": ["linux-io-scheduler"]},
+    {"url": "https://docs.kernel.org/block/deadline-iosched.html", "title": "Deadline IO scheduler tunables - The Linux Kernel documentation", "kind": "doc", "describes": ["linux-io-scheduler", "starvation"]},
+    {"url": "https://man7.org/linux/man-pages/man8/fstrim.8.html", "title": "fstrim(8) - Linux manual page", "kind": "doc", "describes": ["trim"]},
+    {"url": "https://en.wikipedia.org/wiki/Standard_RAID_levels", "title": "Standard RAID levels - Wikipedia", "kind": "doc", "describes": ["raid", "raid-parity"]},
+    {"url": "https://en.wikipedia.org/wiki/Nested_RAID_levels", "title": "Nested RAID levels - Wikipedia", "kind": "doc", "describes": ["raid"]}
+  ],
+  "visuals": [
+    {"path": "posts/assets/storage/hdd-anatomy.png", "type": "diagram", "caption": "HDD 윗면(플래터·트랙·섹터·헤드·암)과 옆면(실린더), 4KB 무작위 읽기의 탐색·회전·전송 시간 분해(Cheetah 15K.5 ≈ 6.0ms, Barracuda ≈ 13.2ms)", "depicts": ["hdd", "disk-geometry", "seek-time", "rotational-latency", "disk-access-time"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/file-disks.pdf", "https://en.wikipedia.org/wiki/Cylinder-head-sector", "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/10_MassStorage.html"]},
+    {"path": "posts/assets/storage/ssd-ftl.png", "type": "diagram", "caption": "로그 구조 FTL: 첫 쓰기 → 덮어쓰기로 쓰레기 페이지 발생 → 블록 0 가비지 컬렉션 후의 매핑 테이블과 페이지 상태", "depicts": ["ssd", "nand-flash", "ftl", "ssd-garbage-collection", "write-amplification"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/file-ssd.pdf"]},
+    {"path": "posts/assets/storage/disk-scheduling.png", "type": "chart", "caption": "같은 요청 큐(헤드 53)에서 FCFS 640, SSTF 236, SCAN 236, C-SCAN 386, LOOK 208 실린더의 헤드 이동 경로와 총 이동 거리", "depicts": ["disk-scheduling", "sstf", "scan-scheduling", "c-scan", "look-scheduling"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/file-disks.pdf", "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/10_MassStorage.html", "https://en.wikipedia.org/wiki/Elevator_algorithm"]},
+    {"path": "posts/assets/storage/raid-levels.png", "type": "diagram", "caption": "RAID 0·1·10·5·6의 블록 배치와 용량·장애 허용 수, XOR 패리티로 잃은 블록을 복구하는 예", "depicts": ["raid", "raid-parity"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/file-raid.pdf", "https://en.wikipedia.org/wiki/Standard_RAID_levels", "https://en.wikipedia.org/wiki/Nested_RAID_levels", "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/10_MassStorage.html"]}
+  ],
+  "post": {
+    "slug": "storage",
+    "title": "대용량 저장장치: HDD, SSD, 디스크 스케줄링, 그리고 RAID",
+    "path": "posts/2026-11-23-storage.md",
+    "explains": ["hdd", "disk-geometry", "seek-time", "rotational-latency", "disk-access-time", "ssd", "nand-flash", "ftl", "ssd-garbage-collection", "write-amplification", "wear-leveling", "trim", "disk-scheduling", "sstf", "scan-scheduling", "c-scan", "look-scheduling", "linux-io-scheduler", "raid", "raid-parity"]
+  }
+}

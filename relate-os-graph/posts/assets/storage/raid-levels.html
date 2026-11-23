@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAID Levels</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806;
+    --ret: #0F6E56; --ret-bg: #E1F5EE; --ret-ink: #04342C;
+    --blu: #185FA5; --blu-bg: #E6F1FB; --blu-ink: #042C53;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA;
+      --ret: #5DCAA5; --ret-bg: #04342C; --ret-ink: #E1F5EE;
+      --blu: #85B7EB; --blu-bg: #042C53; --blu-ink: #E6F1FB;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .l { fill: var(--ink); font-size: 13px; font-weight: 700; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .arr { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 604" role="img" aria-label="디스크 4개 기준 RAID 0, RAID 1(2개), RAID 10, RAID 5, RAID 6의 블록 배치와 용량·장애 허용 수, 그리고 XOR 패리티로 잃은 블록을 복구하는 예">
+  <defs>
+    <marker id="ah-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+  </defs>
+  <rect x="30" y="20" width="300" height="272" rx="16" fill="var(--lane)"/>
+  <text class="t m" x="50" y="54">RAID 0</text>
+  <text class="s" x="50" y="74">스트라이핑</text>
+  <rect x="53.0" y="92" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="81.0" y="110" text-anchor="middle" style="font-weight:700">D0</text>
+  <rect x="59.0" y="118" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="81.0" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">0</text>
+  <rect x="59.0" y="153" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="81.0" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">4</text>
+  <rect x="59.0" y="188" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="81.0" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">8</text>
+  <rect x="119.0" y="92" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="147.0" y="110" text-anchor="middle" style="font-weight:700">D1</text>
+  <rect x="125.0" y="118" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="147.0" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">1</text>
+  <rect x="125.0" y="153" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="147.0" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">5</text>
+  <rect x="125.0" y="188" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="147.0" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">9</text>
+  <rect x="185.0" y="92" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="213.0" y="110" text-anchor="middle" style="font-weight:700">D2</text>
+  <rect x="191.0" y="118" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="213.0" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">2</text>
+  <rect x="191.0" y="153" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="213.0" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">6</text>
+  <rect x="191.0" y="188" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="213.0" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">10</text>
+  <rect x="251.0" y="92" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="279.0" y="110" text-anchor="middle" style="font-weight:700">D3</text>
+  <rect x="257.0" y="118" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="279.0" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">3</text>
+  <rect x="257.0" y="153" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="279.0" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">7</text>
+  <rect x="257.0" y="188" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="279.0" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">11</text>
+  <rect x="50" y="246" width="120" height="28" rx="14" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <text class="l" x="110.0" y="265" text-anchor="middle" style="fill:var(--ink)">용량 <tspan class="m">4/4</tspan></text>
+  <rect x="182" y="246" width="128" height="28" rx="14" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.4"/>
+  <text class="l" x="246.0" y="265" text-anchor="middle" style="fill:var(--bad)">장애 허용 <tspan class="m">0</tspan></text>
+  <rect x="350" y="20" width="300" height="272" rx="16" fill="var(--lane)"/>
+  <text class="t m" x="370" y="54">RAID 1</text>
+  <text class="s" x="370" y="74">미러링</text>
+  <rect x="439.0" y="92" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="467.0" y="110" text-anchor="middle" style="font-weight:700">D0</text>
+  <rect x="445.0" y="118" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="467.0" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">0</text>
+  <rect x="445.0" y="153" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="467.0" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">1</text>
+  <rect x="445.0" y="188" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="467.0" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">2</text>
+  <rect x="505.0" y="92" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="533.0" y="110" text-anchor="middle" style="font-weight:700">D1</text>
+  <rect x="511.0" y="118" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="533.0" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">0</text>
+  <rect x="511.0" y="153" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="533.0" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">1</text>
+  <rect x="511.0" y="188" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="533.0" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">2</text>
+  <rect x="370" y="246" width="120" height="28" rx="14" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <text class="l" x="430.0" y="265" text-anchor="middle" style="fill:var(--ink)">용량 <tspan class="m">1/2</tspan></text>
+  <rect x="502" y="246" width="128" height="28" rx="14" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.4"/>
+  <text class="l" x="566.0" y="265" text-anchor="middle" style="fill:var(--ret-ink)">장애 허용 <tspan class="m">1</tspan></text>
+  <rect x="670" y="20" width="300" height="272" rx="16" fill="var(--lane)"/>
+  <text class="t m" x="690" y="54">RAID 10</text>
+  <text class="s" x="690" y="74">미러 쌍 위에 스트라이핑</text>
+  <rect x="690.0" y="86" width="128" height="146" rx="12" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 4"/>
+  <rect x="822.0" y="86" width="128" height="146" rx="12" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 4"/>
+  <rect x="693.0" y="92" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="721.0" y="110" text-anchor="middle" style="font-weight:700">D0</text>
+  <rect x="699.0" y="118" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="721.0" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">0</text>
+  <rect x="699.0" y="153" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="721.0" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">2</text>
+  <rect x="699.0" y="188" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="721.0" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">4</text>
+  <rect x="759.0" y="92" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="787.0" y="110" text-anchor="middle" style="font-weight:700">D1</text>
+  <rect x="765.0" y="118" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="787.0" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">0</text>
+  <rect x="765.0" y="153" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="787.0" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">2</text>
+  <rect x="765.0" y="188" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="787.0" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">4</text>
+  <rect x="825.0" y="92" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="853.0" y="110" text-anchor="middle" style="font-weight:700">D2</text>
+  <rect x="831.0" y="118" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="853.0" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">1</text>
+  <rect x="831.0" y="153" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="853.0" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">3</text>
+  <rect x="831.0" y="188" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="853.0" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">5</text>
+  <rect x="891.0" y="92" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="919.0" y="110" text-anchor="middle" style="font-weight:700">D3</text>
+  <rect x="897.0" y="118" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="919.0" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">1</text>
+  <rect x="897.0" y="153" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="919.0" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">3</text>
+  <rect x="897.0" y="188" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="919.0" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">5</text>
+  <rect x="690" y="246" width="120" height="28" rx="14" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <text class="l" x="750.0" y="265" text-anchor="middle" style="fill:var(--ink)">용량 <tspan class="m">2/4</tspan></text>
+  <rect x="822" y="246" width="128" height="28" rx="14" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.4"/>
+  <text class="l" x="886.0" y="265" text-anchor="middle" style="fill:var(--ret-ink)">장애 허용 <tspan class="m">1~2</tspan></text>
+  <rect x="30" y="312" width="300" height="272" rx="16" fill="var(--lane)"/>
+  <text class="t m" x="50" y="346">RAID 5</text>
+  <text class="s" x="50" y="366">분산 패리티 1개</text>
+  <rect x="53.0" y="384" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="81.0" y="402" text-anchor="middle" style="font-weight:700">D0</text>
+  <rect x="59.0" y="410" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="81.0" y="430" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">0</text>
+  <rect x="59.0" y="445" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="81.0" y="465" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">3</text>
+  <rect x="59.0" y="480" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="81.0" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">6</text>
+  <rect x="119.0" y="384" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="147.0" y="402" text-anchor="middle" style="font-weight:700">D1</text>
+  <rect x="125.0" y="410" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="147.0" y="430" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">1</text>
+  <rect x="125.0" y="445" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="147.0" y="465" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">4</text>
+  <rect x="125.0" y="480" width="44" height="29" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.3"/>
+  <text class="m" x="147.0" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw-ink)">P</text>
+  <rect x="185.0" y="384" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="213.0" y="402" text-anchor="middle" style="font-weight:700">D2</text>
+  <rect x="191.0" y="410" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="213.0" y="430" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">2</text>
+  <rect x="191.0" y="445" width="44" height="29" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.3"/>
+  <text class="m" x="213.0" y="465" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw-ink)">P</text>
+  <rect x="191.0" y="480" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="213.0" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">7</text>
+  <rect x="251.0" y="384" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="279.0" y="402" text-anchor="middle" style="font-weight:700">D3</text>
+  <rect x="257.0" y="410" width="44" height="29" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.3"/>
+  <text class="m" x="279.0" y="430" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw-ink)">P</text>
+  <rect x="257.0" y="445" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="279.0" y="465" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">5</text>
+  <rect x="257.0" y="480" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="279.0" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">8</text>
+  <rect x="50" y="538" width="120" height="28" rx="14" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <text class="l" x="110.0" y="557" text-anchor="middle" style="fill:var(--ink)">용량 <tspan class="m">3/4</tspan></text>
+  <rect x="182" y="538" width="128" height="28" rx="14" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.4"/>
+  <text class="l" x="246.0" y="557" text-anchor="middle" style="fill:var(--ret-ink)">장애 허용 <tspan class="m">1</tspan></text>
+  <rect x="350" y="312" width="300" height="272" rx="16" fill="var(--lane)"/>
+  <text class="t m" x="370" y="346">RAID 6</text>
+  <text class="s" x="370" y="366">분산 패리티 2개</text>
+  <rect x="373.0" y="384" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="401.0" y="402" text-anchor="middle" style="font-weight:700">D0</text>
+  <rect x="379.0" y="410" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="401.0" y="430" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">0</text>
+  <rect x="379.0" y="445" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="401.0" y="465" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">2</text>
+  <rect x="379.0" y="480" width="44" height="29" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.3"/>
+  <text class="m" x="401.0" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw-ink)">P</text>
+  <rect x="439.0" y="384" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="467.0" y="402" text-anchor="middle" style="font-weight:700">D1</text>
+  <rect x="445.0" y="410" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="467.0" y="430" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">1</text>
+  <rect x="445.0" y="445" width="44" height="29" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.3"/>
+  <text class="m" x="467.0" y="465" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw-ink)">P</text>
+  <rect x="445.0" y="480" width="44" height="29" rx="6" fill="var(--blu-bg)" stroke="var(--blu)" stroke-width="1.3"/>
+  <text class="m" x="467.0" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="var(--blu-ink)">Q</text>
+  <rect x="505.0" y="384" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="533.0" y="402" text-anchor="middle" style="font-weight:700">D2</text>
+  <rect x="511.0" y="410" width="44" height="29" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.3"/>
+  <text class="m" x="533.0" y="430" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw-ink)">P</text>
+  <rect x="511.0" y="445" width="44" height="29" rx="6" fill="var(--blu-bg)" stroke="var(--blu)" stroke-width="1.3"/>
+  <text class="m" x="533.0" y="465" text-anchor="middle" font-size="14" font-weight="700" fill="var(--blu-ink)">Q</text>
+  <rect x="511.0" y="480" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="533.0" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">4</text>
+  <rect x="571.0" y="384" width="56" height="134" rx="10" fill="var(--card)" stroke="var(--ink)" stroke-width="1.6"/>
+  <text class="s m" x="599.0" y="402" text-anchor="middle" style="font-weight:700">D3</text>
+  <rect x="577.0" y="410" width="44" height="29" rx="6" fill="var(--blu-bg)" stroke="var(--blu)" stroke-width="1.3"/>
+  <text class="m" x="599.0" y="430" text-anchor="middle" font-size="14" font-weight="700" fill="var(--blu-ink)">Q</text>
+  <rect x="577.0" y="445" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="599.0" y="465" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">3</text>
+  <rect x="577.0" y="480" width="44" height="29" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="599.0" y="500" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core-ink)">5</text>
+  <rect x="370" y="538" width="120" height="28" rx="14" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <text class="l" x="430.0" y="557" text-anchor="middle" style="fill:var(--ink)">용량 <tspan class="m">2/4</tspan></text>
+  <rect x="502" y="538" width="128" height="28" rx="14" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.4"/>
+  <text class="l" x="566.0" y="557" text-anchor="middle" style="fill:var(--ret-ink)">장애 허용 <tspan class="m">2</tspan></text>
+  <rect x="670" y="312" width="300" height="272" rx="16" fill="var(--lane)"/>
+  <text class="t m" x="690" y="346">XOR</text>
+  <text class="s" x="690" y="366">패리티 계산과 복구</text>
+  <text class="l m" x="704" y="402">D0</text>
+  <rect x="744" y="382" width="28" height="28" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="758" y="401" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core)">0</text>
+  <rect x="778" y="382" width="28" height="28" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="792" y="401" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core)">1</text>
+  <rect x="812" y="382" width="28" height="28" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="826" y="401" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core)">1</text>
+  <rect x="846" y="382" width="28" height="28" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="860" y="401" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core)">0</text>
+  <text class="l m" x="704" y="438">D1</text>
+  <rect x="744" y="418" width="28" height="28" rx="6" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.3"/>
+  <text class="m" x="758" y="437" text-anchor="middle" font-size="14" font-weight="700" fill="var(--bad)">?</text>
+  <rect x="778" y="418" width="28" height="28" rx="6" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.3"/>
+  <text class="m" x="792" y="437" text-anchor="middle" font-size="14" font-weight="700" fill="var(--bad)">?</text>
+  <rect x="812" y="418" width="28" height="28" rx="6" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.3"/>
+  <text class="m" x="826" y="437" text-anchor="middle" font-size="14" font-weight="700" fill="var(--bad)">?</text>
+  <rect x="846" y="418" width="28" height="28" rx="6" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.3"/>
+  <text class="m" x="860" y="437" text-anchor="middle" font-size="14" font-weight="700" fill="var(--bad)">?</text>
+  <circle cx="906" cy="432" r="12" fill="var(--card)" stroke="var(--bad)" stroke-width="2"/>
+  <path d="M901 427l10 10M911 427l-10 10" stroke="var(--bad)" stroke-width="2.2" stroke-linecap="round"/>
+  <text class="l m" x="704" y="474">D2</text>
+  <rect x="744" y="454" width="28" height="28" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="758" y="473" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core)">1</text>
+  <rect x="778" y="454" width="28" height="28" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="792" y="473" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core)">0</text>
+  <rect x="812" y="454" width="28" height="28" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="826" y="473" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core)">1</text>
+  <rect x="846" y="454" width="28" height="28" rx="6" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.3"/>
+  <text class="m" x="860" y="473" text-anchor="middle" font-size="14" font-weight="700" fill="var(--core)">1</text>
+  <text class="l m" x="704" y="510">P</text>
+  <rect x="744" y="490" width="28" height="28" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.3"/>
+  <text class="m" x="758" y="509" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw)">0</text>
+  <rect x="778" y="490" width="28" height="28" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.3"/>
+  <text class="m" x="792" y="509" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw)">0</text>
+  <rect x="812" y="490" width="28" height="28" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.3"/>
+  <text class="m" x="826" y="509" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw)">0</text>
+  <rect x="846" y="490" width="28" height="28" rx="6" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.3"/>
+  <text class="m" x="860" y="509" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw)">1</text>
+  <line x1="696" y1="526" x2="944" y2="526" stroke="var(--muted)" stroke-width="1.2"/>
+  <rect x="690" y="538" width="260" height="28" rx="14" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.4"/>
+  <text class="l m" x="820" y="557" text-anchor="middle" style="fill:var(--ret-ink)">D1 = D0⊕D2⊕P = 1100</text>
+</svg>
+</figure>
+</body>
+</html>

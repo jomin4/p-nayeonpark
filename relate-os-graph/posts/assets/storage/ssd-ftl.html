@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSD FTL</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806;
+    --ret: #0F6E56; --ret-bg: #E1F5EE; --ret-ink: #04342C;
+    --blu: #185FA5; --blu-bg: #E6F1FB; --blu-ink: #042C53;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA;
+      --ret: #5DCAA5; --ret-bg: #04342C; --ret-ink: #E1F5EE;
+      --blu: #85B7EB; --blu-bg: #042C53; --blu-ink: #E6F1FB;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .l { fill: var(--ink); font-size: 13px; font-weight: 700; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .arr { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 574" role="img" aria-label="로그 구조 FTL: 논리 블록 100, 101, 2000, 2001을 쓰고 100, 101을 덮어쓴 뒤 블록 0을 가비지 컬렉션하는 과정의 매핑 테이블과 플래시 페이지 상태">
+  <defs>
+    <marker id="ah-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+  </defs>
+  <text class="l" x="40" y="46">호스트 쓰기</text>
+  <rect x="130" y="26" width="98" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="l m" x="179.0" y="46" text-anchor="middle">100 <tspan style="fill:var(--muted);font-weight:400">←</tspan> a1</text>
+  <rect x="236" y="26" width="98" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="l m" x="285.0" y="46" text-anchor="middle">101 <tspan style="fill:var(--muted);font-weight:400">←</tspan> a2</text>
+  <rect x="342" y="26" width="98" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="l m" x="391.0" y="46" text-anchor="middle">2000 <tspan style="fill:var(--muted);font-weight:400">←</tspan> b1</text>
+  <rect x="448" y="26" width="98" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="l m" x="497.0" y="46" text-anchor="middle">2001 <tspan style="fill:var(--muted);font-weight:400">←</tspan> b2</text>
+  <line x1="558" y1="26" x2="558" y2="56" stroke="var(--stroke)" stroke-width="1.4"/>
+  <rect x="572" y="26" width="98" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="l m" x="621.0" y="46" text-anchor="middle">100 <tspan style="fill:var(--muted);font-weight:400">←</tspan> c1</text>
+  <rect x="678" y="26" width="98" height="30" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="l m" x="727.0" y="46" text-anchor="middle">101 <tspan style="fill:var(--muted);font-weight:400">←</tspan> c2</text>
+  <text class="s m" x="960" y="46" text-anchor="end">page 4 KB · block 4 pages</text>
+  <rect x="30" y="84" width="940" height="136" rx="14" fill="var(--lane)"/>
+  <circle cx="58" cy="120" r="14" fill="var(--core)"/>
+  <text class="l m" x="58" y="125" text-anchor="middle" style="fill:var(--bg)">1</text>
+  <text class="t" x="82" y="125">첫 쓰기</text>
+  <text class="s" x="48" y="156">FTL 매핑</text>
+  <rect x="48" y="166" width="250" height="40" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="m" x="79" y="183" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">100</text>
+  <text class="m" x="79" y="200" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">→0</text>
+  <text class="m" x="141" y="183" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">101</text>
+  <text class="m" x="141" y="200" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">→1</text>
+  <line x1="110.5" y1="172" x2="110.5" y2="200" stroke="var(--stroke)"/>
+  <text class="m" x="203" y="183" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">2000</text>
+  <text class="m" x="203" y="200" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">→2</text>
+  <line x1="172.5" y1="172" x2="172.5" y2="200" stroke="var(--stroke)"/>
+  <text class="m" x="265" y="183" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">2001</text>
+  <text class="m" x="265" y="200" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">→3</text>
+  <line x1="234.5" y1="172" x2="234.5" y2="200" stroke="var(--stroke)"/>
+  <rect x="358" y="110" width="200" height="98" rx="10" fill="none" stroke="var(--stroke)" stroke-width="1.2"/>
+  <text class="s" x="364" y="102">블록 <tspan class="m">0</tspan></text>
+  <rect x="364" y="118" width="44" height="56" rx="7" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="m" x="386.0" y="144" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ret-ink)">a1</text>
+  <text class="m" x="386.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--ret-ink)">V</text>
+  <text class="m" x="386.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">00</text>
+  <rect x="412" y="118" width="44" height="56" rx="7" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="m" x="434.0" y="144" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ret-ink)">a2</text>
+  <text class="m" x="434.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--ret-ink)">V</text>
+  <text class="m" x="434.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">01</text>
+  <rect x="460" y="118" width="44" height="56" rx="7" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="m" x="482.0" y="144" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ret-ink)">b1</text>
+  <text class="m" x="482.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--ret-ink)">V</text>
+  <text class="m" x="482.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">02</text>
+  <rect x="508" y="118" width="44" height="56" rx="7" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="m" x="530.0" y="144" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ret-ink)">b2</text>
+  <text class="m" x="530.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--ret-ink)">V</text>
+  <text class="m" x="530.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">03</text>
+  <rect x="562" y="110" width="200" height="98" rx="10" fill="none" stroke="var(--stroke)" stroke-width="1.2"/>
+  <text class="s" x="568" y="102">블록 <tspan class="m">1</tspan></text>
+  <rect x="568" y="118" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="590.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="590.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">04</text>
+  <rect x="616" y="118" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="638.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="638.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">05</text>
+  <rect x="664" y="118" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="686.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="686.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">06</text>
+  <rect x="712" y="118" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="734.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="734.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">07</text>
+  <rect x="766" y="110" width="200" height="98" rx="10" fill="none" stroke="var(--stroke)" stroke-width="1.2"/>
+  <text class="s" x="772" y="102">블록 <tspan class="m">2</tspan></text>
+  <rect x="772" y="118" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="794.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="794.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">08</text>
+  <rect x="820" y="118" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="842.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="842.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">09</text>
+  <rect x="868" y="118" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="890.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="890.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">10</text>
+  <rect x="916" y="118" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="938.0" y="165" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="938.0" y="192" text-anchor="middle" font-size="11" fill="var(--muted)">11</text>
+  <rect x="30" y="234" width="940" height="136" rx="14" fill="var(--lane)"/>
+  <circle cx="58" cy="270" r="14" fill="var(--core)"/>
+  <text class="l m" x="58" y="275" text-anchor="middle" style="fill:var(--bg)">2</text>
+  <text class="t" x="82" y="275">덮어쓰기</text>
+  <text class="s" x="48" y="306">FTL 매핑</text>
+  <rect x="48" y="316" width="250" height="40" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="m" x="79" y="333" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">100</text>
+  <text class="m" x="79" y="350" text-anchor="middle" font-size="13" font-weight="700" fill="var(--core)">→4</text>
+  <text class="m" x="141" y="333" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">101</text>
+  <text class="m" x="141" y="350" text-anchor="middle" font-size="13" font-weight="700" fill="var(--core)">→5</text>
+  <line x1="110.5" y1="322" x2="110.5" y2="350" stroke="var(--stroke)"/>
+  <text class="m" x="203" y="333" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">2000</text>
+  <text class="m" x="203" y="350" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">→2</text>
+  <line x1="172.5" y1="322" x2="172.5" y2="350" stroke="var(--stroke)"/>
+  <text class="m" x="265" y="333" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">2001</text>
+  <text class="m" x="265" y="350" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">→3</text>
+  <line x1="234.5" y1="322" x2="234.5" y2="350" stroke="var(--stroke)"/>
+  <rect x="358" y="260" width="200" height="98" rx="10" fill="none" stroke="var(--stroke)" stroke-width="1.2"/>
+  <text class="s" x="364" y="252">블록 <tspan class="m">0</tspan></text>
+  <rect x="364" y="268" width="44" height="56" rx="7" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.5"/>
+  <text class="m" x="386.0" y="294" text-anchor="middle" font-size="14" font-weight="700" fill="var(--bad)" text-decoration="line-through">a1</text>
+  <text class="m" x="386.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--bad)">V</text>
+  <text class="m" x="386.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">00</text>
+  <rect x="412" y="268" width="44" height="56" rx="7" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.5"/>
+  <text class="m" x="434.0" y="294" text-anchor="middle" font-size="14" font-weight="700" fill="var(--bad)" text-decoration="line-through">a2</text>
+  <text class="m" x="434.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--bad)">V</text>
+  <text class="m" x="434.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">01</text>
+  <rect x="460" y="268" width="44" height="56" rx="7" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="m" x="482.0" y="294" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ret-ink)">b1</text>
+  <text class="m" x="482.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--ret-ink)">V</text>
+  <text class="m" x="482.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">02</text>
+  <rect x="508" y="268" width="44" height="56" rx="7" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="m" x="530.0" y="294" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ret-ink)">b2</text>
+  <text class="m" x="530.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--ret-ink)">V</text>
+  <text class="m" x="530.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">03</text>
+  <rect x="562" y="260" width="200" height="98" rx="10" fill="none" stroke="var(--stroke)" stroke-width="1.2"/>
+  <text class="s" x="568" y="252">블록 <tspan class="m">1</tspan></text>
+  <rect x="568" y="268" width="44" height="56" rx="7" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="m" x="590.0" y="294" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ret-ink)">c1</text>
+  <text class="m" x="590.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--ret-ink)">V</text>
+  <text class="m" x="590.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">04</text>
+  <rect x="616" y="268" width="44" height="56" rx="7" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="m" x="638.0" y="294" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ret-ink)">c2</text>
+  <text class="m" x="638.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--ret-ink)">V</text>
+  <text class="m" x="638.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">05</text>
+  <rect x="664" y="268" width="44" height="56" rx="7" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text class="m" x="686.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--muted)">E</text>
+  <text class="m" x="686.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">06</text>
+  <rect x="712" y="268" width="44" height="56" rx="7" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text class="m" x="734.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--muted)">E</text>
+  <text class="m" x="734.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">07</text>
+  <rect x="766" y="260" width="200" height="98" rx="10" fill="none" stroke="var(--stroke)" stroke-width="1.2"/>
+  <text class="s" x="772" y="252">블록 <tspan class="m">2</tspan></text>
+  <rect x="772" y="268" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="794.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="794.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">08</text>
+  <rect x="820" y="268" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="842.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="842.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">09</text>
+  <rect x="868" y="268" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="890.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="890.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">10</text>
+  <rect x="916" y="268" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="938.0" y="315" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="938.0" y="342" text-anchor="middle" font-size="11" fill="var(--muted)">11</text>
+  <rect x="30" y="384" width="940" height="136" rx="14" fill="var(--lane)"/>
+  <circle cx="58" cy="420" r="14" fill="var(--core)"/>
+  <text class="l m" x="58" y="425" text-anchor="middle" style="fill:var(--bg)">3</text>
+  <text class="t" x="82" y="425">GC 후</text>
+  <text class="s" x="48" y="456">FTL 매핑</text>
+  <rect x="48" y="466" width="250" height="40" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="m" x="79" y="483" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">100</text>
+  <text class="m" x="79" y="500" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">→4</text>
+  <text class="m" x="141" y="483" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">101</text>
+  <text class="m" x="141" y="500" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">→5</text>
+  <line x1="110.5" y1="472" x2="110.5" y2="500" stroke="var(--stroke)"/>
+  <text class="m" x="203" y="483" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">2000</text>
+  <text class="m" x="203" y="500" text-anchor="middle" font-size="13" font-weight="700" fill="var(--core)">→6</text>
+  <line x1="172.5" y1="472" x2="172.5" y2="500" stroke="var(--stroke)"/>
+  <text class="m" x="265" y="483" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">2001</text>
+  <text class="m" x="265" y="500" text-anchor="middle" font-size="13" font-weight="700" fill="var(--core)">→7</text>
+  <line x1="234.5" y1="472" x2="234.5" y2="500" stroke="var(--stroke)"/>
+  <rect x="358" y="410" width="200" height="98" rx="10" fill="none" stroke="var(--stroke)" stroke-width="1.2"/>
+  <text class="s" x="364" y="402">블록 <tspan class="m">0</tspan></text>
+  <rect x="364" y="418" width="44" height="56" rx="7" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text class="m" x="386.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--muted)">E</text>
+  <text class="m" x="386.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">00</text>
+  <rect x="412" y="418" width="44" height="56" rx="7" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text class="m" x="434.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--muted)">E</text>
+  <text class="m" x="434.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">01</text>
+  <rect x="460" y="418" width="44" height="56" rx="7" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text class="m" x="482.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--muted)">E</text>
+  <text class="m" x="482.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">02</text>
+  <rect x="508" y="418" width="44" height="56" rx="7" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text class="m" x="530.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--muted)">E</text>
+  <text class="m" x="530.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">03</text>
+  <rect x="562" y="410" width="200" height="98" rx="10" fill="none" stroke="var(--stroke)" stroke-width="1.2"/>
+  <text class="s" x="568" y="402">블록 <tspan class="m">1</tspan></text>
+  <rect x="568" y="418" width="44" height="56" rx="7" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="m" x="590.0" y="444" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ret-ink)">c1</text>
+  <text class="m" x="590.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--ret-ink)">V</text>
+  <text class="m" x="590.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">04</text>
+  <rect x="616" y="418" width="44" height="56" rx="7" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="m" x="638.0" y="444" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ret-ink)">c2</text>
+  <text class="m" x="638.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--ret-ink)">V</text>
+  <text class="m" x="638.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">05</text>
+  <rect x="664" y="418" width="44" height="56" rx="7" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.5"/>
+  <text class="m" x="686.0" y="444" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw-ink)">b1</text>
+  <text class="m" x="686.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--hw-ink)">V</text>
+  <text class="m" x="686.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">06</text>
+  <rect x="712" y="418" width="44" height="56" rx="7" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.5"/>
+  <text class="m" x="734.0" y="444" text-anchor="middle" font-size="14" font-weight="700" fill="var(--hw-ink)">b2</text>
+  <text class="m" x="734.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--hw-ink)">V</text>
+  <text class="m" x="734.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">07</text>
+  <rect x="766" y="410" width="200" height="98" rx="10" fill="none" stroke="var(--stroke)" stroke-width="1.2"/>
+  <text class="s" x="772" y="402">블록 <tspan class="m">2</tspan></text>
+  <rect x="772" y="418" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="794.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="794.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">08</text>
+  <rect x="820" y="418" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="842.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="842.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">09</text>
+  <rect x="868" y="418" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="890.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="890.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">10</text>
+  <rect x="916" y="418" width="44" height="56" rx="7" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="m" x="938.0" y="465" text-anchor="middle" font-size="11.5" fill="var(--muted)">i</text>
+  <text class="m" x="938.0" y="492" text-anchor="middle" font-size="11" fill="var(--muted)">11</text>
+  <rect x="300" y="548" width="18" height="18" rx="4" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.5"/>
+  <text class="s" x="326" y="562">유효</text>
+  <rect x="388" y="548" width="18" height="18" rx="4" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.5"/>
+  <text class="s" x="414" y="562">쓰레기</text>
+  <rect x="489" y="548" width="18" height="18" rx="4" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.5"/>
+  <text class="s" x="515" y="562">GC가 옮김</text>
+  <rect x="615" y="548" width="18" height="18" rx="4" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text class="s" x="641" y="562">지워짐</text>
+  <rect x="716" y="548" width="18" height="18" rx="4" fill="var(--lane)" stroke="var(--stroke)" stroke-width="1.5"/>
+  <text class="s" x="742" y="562">무효</text>
+</svg>
+</figure>
+</body>
+</html>
