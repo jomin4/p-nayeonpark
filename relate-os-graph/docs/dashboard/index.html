@@ -211,6 +211,9 @@
   const conceptBy = Object.fromEntries(G.concepts.map(c => [c.slug, c]));
   const areaOfConcept = c => unitBy[c.unit].area;
   const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  // GitHub Pages는 .md를 원문 그대로 보여 주므로, 거기서는 GitHub의 렌더링된 글 페이지로 연결한다.
+  const ON_PAGES = location.hostname.endsWith('github.io');
+  const postUrl = p => ON_PAGES ? p.replace('../../', 'https://github.com/jomin4/p-nayeonpark/blob/main/relate-os-graph/') : p;
 
   // ---------- index ----------
   const parents = {}, children = {};
@@ -384,7 +387,7 @@
       detail.innerHTML = `<h2>개념 살펴보기</h2>
         <p class="note">지도에서 점을 누르거나 위에서 검색하면 이 자리에 개념 카드가 열린다.</p>
         <h4>연결이 가장 많은 개념</h4><div class="linklist">${top.map(c => cbtn(c.slug)).join('')}</div>
-        <h4>단원별 글</h4><ul>${G.topics.map(t => `<li>${t.order}. <a href="${t.post.path}">${esc(t.name)}</a></li>`).join('')}</ul>`;
+        <h4>단원별 글</h4><ul>${G.topics.map(t => `<li>${t.order}. <a href="${postUrl(t.post.path)}">${esc(t.name)}</a></li>`).join('')}</ul>`;
       return;
     }
     const c = conceptBy[s], u = unitBy[c.unit], anc = ancestors(s), path = longestPathTo(s);
@@ -403,7 +406,7 @@
       ${qs.length ? `<h4>질문 (${qs.length})</h4><ul>${qs.map(q => `<li><span class="${q.answered ? 'q-done' : 'q-open'}">${q.answered ? '✓ 해결' : '● 미해결'}</span> ${esc(q.text)}${q.answered ? `<br><span class="note">${esc(q.answer)}</span>` : ''}</li>`).join('')}</ul>` : ''}
       ${exs.length ? `<h4>예제 (${exs.length})</h4>${exs.map(e => `<p class="note">${e.kind === 'code' ? '코드' : '비유'}</p><pre>${esc(e.body)}</pre>`).join('<div style="height:8px"></div>')}` : ''}
       ${srcs.length ? `<h4>참고 자료 (${srcs.length})</h4><ul>${srcs.map(x => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a> <span class="note">${x.kind}</span></li>`).join('')}</ul>` : ''}
-      <h4>블로그 글</h4><p><a href="${u.post.path}">${esc(u.post.title)}</a></p>`;
+      <h4>블로그 글</h4><p><a href="${postUrl(u.post.path)}">${esc(u.post.title)}</a></p>`;
     detail.scrollTop = 0;
   }
 
@@ -491,7 +494,7 @@
       rows.map(p => `<tr><td>${cbtn(p.a)}</td><td>${cbtn(p.b)}</td><td>${esc(p.note)}</td></tr>`).join('') + '</tbody>';
   }
   document.getElementById('unitTable').innerHTML = `<thead><tr><th>단원</th><th class="num">개념</th><th class="num">시각화</th><th class="num">자료</th><th class="num">미해결</th></tr></thead><tbody>` +
-    G.topics.map(t => `<tr><td>${unitCell(t.order)}<br><a href="${t.post.path}" style="font-size:12.5px">${esc(t.post.title)}</a></td><td class="num">${t.concepts}</td><td class="num">${t.visuals}</td><td class="num">${t.sources}</td><td class="num">${t.open}</td></tr>`).join('') + '</tbody>';
+    G.topics.map(t => `<tr><td>${unitCell(t.order)}<br><a href="${postUrl(t.post.path)}" style="font-size:12.5px">${esc(t.post.title)}</a></td><td class="num">${t.concepts}</td><td class="num">${t.visuals}</td><td class="num">${t.sources}</td><td class="num">${t.open}</td></tr>`).join('') + '</tbody>';
   document.getElementById('conceptTable').innerHTML = `<thead><tr><th>개념</th><th>단원</th><th class="num">레벨</th><th class="num">선수</th><th class="num">다음</th></tr></thead><tbody>` +
     G.concepts.map(c => `<tr><td>${cbtn(c.slug)}</td><td>${unitCell(c.unit)}</td><td class="num">${c.level}</td><td class="num">${parents[c.slug].length}</td><td class="num">${children[c.slug].length}</td></tr>`).join('') + '</tbody>';
   document.querySelectorAll('#openTable, #confTable, #conceptTable').forEach(t => t.addEventListener('click', e => {
