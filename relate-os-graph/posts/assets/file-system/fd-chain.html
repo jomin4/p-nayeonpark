@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File Descriptor Chain</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .k { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12.5px; fill: var(--muted); }
+  .v { font-family: "JetBrains Mono", Consolas, monospace; font-size: 13.5px; font-weight: 700; fill: var(--ink); text-anchor: end; }
+  .fd { font-family: "JetBrains Mono", Consolas, monospace; font-size: 15px; font-weight: 700; fill: var(--core-ink); }
+  .fn { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12.5px; fill: var(--core-ink); }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 580" role="img" aria-label="프로세스 A, fork로 만든 자식 B, 따로 연 프로세스 C가 각자 fd 테이블을 가진다. A와 B의 fd 3은 같은 열린 파일 항목 10번(오프셋 10, 참조 수 2)을 가리키고, C의 fd 3은 별도 항목 11번(오프셋 0, 참조 수 1)을 가리킨다. 두 항목은 모두 inode 1000을 가리키며, 디렉터리의 이름 file.txt와 copy.txt도 같은 inode 1000을 가리켜 링크 수가 2다">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+  </defs>
+
+  <!-- ===== column headers ===== -->
+  <text class="t" x="30" y="36">프로세스별 fd 테이블</text>
+  <text class="s m" x="30" y="54">per-process · PCB</text>
+  <text class="t" x="380" y="36">열린 파일 테이블</text>
+  <text class="s m" x="380" y="54">system-wide · struct file</text>
+  <text class="t" x="720" y="36">디렉터리 · inode</text>
+  <text class="s m" x="720" y="54">name → i-number</text>
+
+  <!-- ===== process A ===== -->
+  <rect x="30" y="72" width="260" height="132" rx="14" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <g class="ico" transform="translate(48 84)" style="stroke:var(--core)">
+    <rect x="0" y="0" width="24" height="20" rx="3"/><path d="M5 7l4 3l-4 3M12 14h6"/>
+  </g>
+  <text class="t" x="82" y="99">프로세스 A</text>
+  <text class="s m" x="180" y="99">pid 100</text>
+  <rect x="48" y="128" width="224" height="26" rx="6" fill="var(--lane)"/>
+  <text class="k" x="60" y="146">0  1  2</text>
+  <text class="s" x="262" y="146" text-anchor="end">표준 입출력</text>
+  <rect x="48" y="162" width="224" height="30" rx="6" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="fd" x="60" y="182">3</text>
+  <text class="fn" x="84" y="182">open("file.txt")</text>
+  <circle cx="262" cy="177" r="4" fill="var(--core)"/>
+
+  <!-- fork -->
+  <line x1="110" y1="206" x2="110" y2="250" stroke="var(--core)" stroke-width="2" marker-end="url(#ah-core)"/>
+  <text class="m" x="122" y="233" font-size="13" font-weight="700" fill="var(--core)">fork()</text>
+
+  <!-- ===== process B ===== -->
+  <rect x="30" y="254" width="260" height="132" rx="14" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <g class="ico" transform="translate(48 266)" style="stroke:var(--core)">
+    <rect x="0" y="0" width="24" height="20" rx="3"/><path d="M5 7l4 3l-4 3M12 14h6"/>
+  </g>
+  <text class="t" x="82" y="281">프로세스 B</text>
+  <text class="s m" x="180" y="281">pid 101</text>
+  <rect x="48" y="310" width="224" height="26" rx="6" fill="var(--lane)"/>
+  <text class="k" x="60" y="328">0  1  2</text>
+  <text class="s" x="262" y="328" text-anchor="end">표준 입출력</text>
+  <rect x="48" y="344" width="224" height="30" rx="6" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="fd" x="60" y="364">3</text>
+  <text class="fn" x="84" y="364">상속</text>
+  <circle cx="262" cy="359" r="4" fill="var(--core)"/>
+
+  <!-- ===== process C ===== -->
+  <rect x="30" y="404" width="260" height="132" rx="14" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <g class="ico" transform="translate(48 416)" style="stroke:var(--core)">
+    <rect x="0" y="0" width="24" height="20" rx="3"/><path d="M5 7l4 3l-4 3M12 14h6"/>
+  </g>
+  <text class="t" x="82" y="431">프로세스 C</text>
+  <text class="s m" x="180" y="431">pid 200</text>
+  <rect x="48" y="460" width="224" height="26" rx="6" fill="var(--lane)"/>
+  <text class="k" x="60" y="478">0  1  2</text>
+  <text class="s" x="262" y="478" text-anchor="end">표준 입출력</text>
+  <rect x="48" y="494" width="224" height="30" rx="6" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="fd" x="60" y="514">3</text>
+  <text class="fn" x="84" y="514">open("file.txt")</text>
+  <circle cx="262" cy="509" r="4" fill="var(--core)"/>
+
+  <!-- fd -> open file table arrows -->
+  <path d="M266 177 H335 V256 H376" fill="none" stroke="var(--core)" stroke-width="1.8" marker-end="url(#ah-core)"/>
+  <path d="M266 359 H335 V300 H376" fill="none" stroke="var(--core)" stroke-width="1.8" marker-end="url(#ah-core)"/>
+  <line x1="266" y1="509" x2="376" y2="509" stroke="var(--core)" stroke-width="1.8" marker-end="url(#ah-core)"/>
+
+  <!-- ===== open file table entry [10] ===== -->
+  <rect x="380" y="220" width="250" height="120" rx="14" fill="var(--card)" stroke="var(--hw)" stroke-width="1.6"/>
+  <rect x="396" y="234" width="56" height="24" rx="12" fill="var(--hw-bg)"/>
+  <text class="m" x="424" y="251" text-anchor="middle" font-size="13" font-weight="700" fill="var(--hw-ink)">[10]</text>
+  <text class="t" x="464" y="252" font-size="14">공유 항목</text>
+  <text class="k" x="396" y="284">off</text><text class="v" x="614" y="284">10</text>
+  <text class="k" x="396" y="306">refcnt</text><text class="v" x="614" y="306" style="fill:var(--hw)">2</text>
+  <text class="k" x="396" y="328">flags</text><text class="v" x="614" y="328">O_RDONLY</text>
+
+  <!-- ===== open file table entry [11] ===== -->
+  <rect x="380" y="454" width="250" height="110" rx="14" fill="var(--card)" stroke="var(--hw)" stroke-width="1.6"/>
+  <rect x="396" y="466" width="56" height="24" rx="12" fill="var(--hw-bg)"/>
+  <text class="m" x="424" y="483" text-anchor="middle" font-size="13" font-weight="700" fill="var(--hw-ink)">[11]</text>
+  <text class="t" x="464" y="484" font-size="14">따로 연 항목</text>
+  <text class="k" x="396" y="514">off</text><text class="v" x="614" y="514">0</text>
+  <text class="k" x="396" y="534">refcnt</text><text class="v" x="614" y="534" style="fill:var(--hw)">1</text>
+  <text class="k" x="396" y="554">flags</text><text class="v" x="614" y="554">O_RDONLY</text>
+
+  <!-- open file table -> inode arrows -->
+  <path d="M632 270 H675 V350 H716" fill="none" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <path d="M632 509 H675 V400 H716" fill="none" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+
+  <!-- ===== directory ===== -->
+  <rect x="720" y="80" width="250" height="126" rx="14" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.6"/>
+  <g class="ico" transform="translate(738 92)" style="stroke:var(--muted)">
+    <path d="M0 4 a2 2 0 0 1 2-2 h7 l3 3 h10 a2 2 0 0 1 2 2 v11 a2 2 0 0 1-2 2 h-20 a2 2 0 0 1-2-2z"/>
+  </g>
+  <text class="t" x="772" y="108">디렉터리</text>
+  <text class="s m" x="846" y="108">/home/u</text>
+  <rect x="736" y="124" width="218" height="30" rx="6" fill="var(--lane)"/>
+  <text class="m" x="748" y="144" font-size="13" fill="var(--ink)">file.txt</text>
+  <text class="m" x="942" y="144" font-size="13" font-weight="700" fill="var(--ret)" text-anchor="end">→ 1000</text>
+  <rect x="736" y="162" width="218" height="30" rx="6" fill="var(--lane)"/>
+  <text class="m" x="748" y="182" font-size="13" fill="var(--ink)">copy.txt</text>
+  <text class="m" x="942" y="182" font-size="13" font-weight="700" fill="var(--ret)" text-anchor="end">→ 1000</text>
+
+  <!-- directory -> inode -->
+  <line x1="790" y1="208" x2="790" y2="296" stroke="var(--ret)" stroke-width="1.8" marker-end="url(#ah-ret)"/>
+  <line x1="900" y1="208" x2="900" y2="296" stroke="var(--ret)" stroke-width="1.8" marker-end="url(#ah-ret)"/>
+  <text class="s" x="845" y="257" text-anchor="middle" style="fill:var(--ret);font-weight:700">하드 링크</text>
+
+  <!-- ===== inode ===== -->
+  <rect x="720" y="300" width="250" height="140" rx="14" fill="var(--ret-bg)" stroke="var(--ret)" stroke-width="1.6"/>
+  <g class="ico" transform="translate(738 310)" style="stroke:var(--ret)">
+    <path d="M2 0 h11 l6 6 v16 a2 2 0 0 1-2 2 h-15 a2 2 0 0 1-2-2 v-20 a2 2 0 0 1 2-2z M13 0 v6 h6"/>
+  </g>
+  <text class="t" x="768" y="327" style="fill:var(--ret)">inode</text>
+  <text class="m" x="954" y="327" font-size="14" font-weight="700" fill="var(--ret)" text-anchor="end">#1000</text>
+  <text class="k" x="738" y="358">type</text><text class="v" x="954" y="358">regular</text>
+  <text class="k" x="738" y="380">size</text><text class="v" x="954" y="380">300 B</text>
+  <text class="k" x="738" y="402">links</text><text class="v" x="954" y="402" style="fill:var(--ret)">2</text>
+  <text class="k" x="738" y="424">blocks</text><text class="v" x="954" y="424">i_block[15]</text>
+</svg>
+</figure>
+</body>
+</html>

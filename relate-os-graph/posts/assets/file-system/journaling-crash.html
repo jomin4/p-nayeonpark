@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Journaling Crash Points</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .st { fill: var(--ink); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .ss { fill: var(--muted); font-size: 11.5px; text-anchor: middle; font-family: "JetBrains Mono", Consolas, monospace; }
+  .n { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; font-weight: 700; text-anchor: middle; fill: var(--bg); }
+  .bk { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12.5px; font-weight: 700; text-anchor: middle; }
+  .meta { fill: var(--hw-bg); stroke: var(--hw); stroke-width: 1.5; }
+  .data { fill: var(--ret-bg); stroke: var(--ret); stroke-width: 1.5; }
+  .tx { fill: var(--core-bg); stroke: var(--core); stroke-width: 1.5; }
+  .mh { font-family: "JetBrains Mono", Consolas, monospace; font-size: 14px; font-weight: 700; fill: var(--ink); }
+  .ml { font-size: 13px; fill: var(--ink); }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 556" role="img" aria-label="ext4 ordered 모드에서 파일에 블록 하나를 덧붙이는 순서. 1단계에서 데이터 블록 Db를 제자리에 쓰고, 2단계에서 저널에 TxB와 메타데이터 I, B를 쓴다. 두 쓰기가 끝나기를 기다린 뒤 3단계에서 커밋 블록 TxE를 쓴다. 커밋이 끝나면 4단계 체크포인트로 I와 B를 제자리에 쓰고, 5단계에서 저널 공간을 해제한다. 커밋 전에 크래시가 나면 커밋 기록이 없어 트랜잭션을 버리고 쓰기 전 상태로 돌아가며, 커밋 후 체크포인트 중에 크래시가 나면 저널을 재생해 쓰기 후 상태가 된다. 아래에는 data=journal, ordered, writeback 세 모드가 저널에 무엇을 쓰는지 비교한다">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-bad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--bad)"/></marker>
+  </defs>
+
+  <!-- ===== step headers ===== -->
+  <circle cx="160" cy="32" r="11" fill="var(--ret)"/><text class="n" x="160" y="36">1</text>
+  <text class="st" x="214" y="37">데이터 쓰기</text>
+  <circle cx="318" cy="32" r="11" fill="var(--hw)"/><text class="n" x="318" y="36">2</text>
+  <text class="st" x="370" y="37">저널 쓰기</text>
+  <circle cx="490" cy="32" r="11" fill="var(--core)"/><text class="n" x="490" y="36">3</text>
+  <text class="st" x="530" y="37">커밋</text>
+  <circle cx="634" cy="32" r="11" fill="var(--hw)"/><text class="n" x="634" y="36">4</text>
+  <text class="st" x="696" y="37">체크포인트</text>
+  <circle cx="808" cy="32" r="11" fill="var(--muted)"/><text class="n" x="808" y="36">5</text>
+  <text class="st" x="850" y="37">해제</text>
+  <text class="ss" x="200" y="58">data</text>
+  <text class="ss" x="360" y="58">journal write</text>
+  <text class="ss" x="520" y="58">commit</text>
+  <text class="ss" x="680" y="58">checkpoint</text>
+  <text class="ss" x="840" y="58">free</text>
+
+  <!-- ===== lanes ===== -->
+  <rect x="30" y="72" width="940" height="80" rx="14" fill="var(--lane)"/>
+  <rect x="30" y="164" width="940" height="80" rx="14" fill="var(--lane)"/>
+  <text class="t" x="50" y="108">저널</text>
+  <text class="s m" x="50" y="127">journal</text>
+  <text class="t" x="50" y="200">제자리</text>
+  <text class="s m" x="50" y="219">in-place</text>
+
+  <!-- barriers -->
+  <line x1="450" y1="66" x2="450" y2="252" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <line x1="600" y1="66" x2="600" y2="252" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <rect x="412" y="244" width="76" height="20" rx="10" fill="var(--bg)" stroke="var(--stroke)"/>
+  <text class="s" x="450" y="258" text-anchor="middle" font-size="11.5">완료 대기</text>
+  <rect x="562" y="244" width="76" height="20" rx="10" fill="var(--bg)" stroke="var(--stroke)"/>
+  <text class="s" x="600" y="258" text-anchor="middle" font-size="11.5">완료 대기</text>
+
+  <!-- step 1: data in place -->
+  <rect class="data" x="178" y="186" width="44" height="36" rx="7"/>
+  <text class="bk" x="200" y="209" style="fill:var(--ret)">Db</text>
+
+  <!-- step 2: journal TxB I B -->
+  <rect class="tx" x="294" y="94" width="40" height="36" rx="7"/>
+  <text class="bk" x="314" y="117" style="fill:var(--core-ink)" font-size="11.5">TxB</text>
+  <rect class="meta" x="340" y="94" width="40" height="36" rx="7"/>
+  <text class="bk" x="360" y="117" style="fill:var(--hw-ink)">I</text>
+  <rect class="meta" x="386" y="94" width="40" height="36" rx="7"/>
+  <text class="bk" x="406" y="117" style="fill:var(--hw-ink)">B</text>
+
+  <!-- step 3: commit -->
+  <rect x="498" y="94" width="44" height="36" rx="7" fill="var(--core)" stroke="var(--core)"/>
+  <text class="bk" x="520" y="117" style="fill:var(--bg)" font-size="11.5">TxE</text>
+
+  <!-- step 4: checkpoint I B in place -->
+  <rect class="meta" x="637" y="186" width="40" height="36" rx="7"/>
+  <text class="bk" x="657" y="209" style="fill:var(--hw-ink)">I</text>
+  <rect class="meta" x="683" y="186" width="40" height="36" rx="7"/>
+  <text class="bk" x="703" y="209" style="fill:var(--hw-ink)">B</text>
+
+  <!-- step 5: free -->
+  <rect x="800" y="94" width="80" height="36" rx="7" fill="var(--card)" stroke="var(--muted)" stroke-dasharray="4 3"/>
+  <text class="bk" x="840" y="117" style="fill:var(--muted)">free</text>
+
+  <!-- ===== time axis + crashes ===== -->
+  <line x1="130" y1="290" x2="962" y2="290" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text class="s" x="962" y="310" text-anchor="end">시간</text>
+
+  <circle cx="380" cy="290" r="15" fill="var(--bad)"/>
+  <path d="M382 279 L375 292 H380 L377 302 L386 288 H381 L384 279 Z" fill="var(--bg)"/>
+  <circle cx="680" cy="290" r="15" fill="var(--bad)"/>
+  <path d="M682 279 L675 292 H680 L677 302 L686 288 H681 L684 279 Z" fill="var(--bg)"/>
+  <line x1="380" y1="307" x2="380" y2="324" stroke="var(--bad)" stroke-width="1.8" marker-end="url(#ah-bad)"/>
+  <line x1="680" y1="307" x2="680" y2="324" stroke="var(--bad)" stroke-width="1.8" marker-end="url(#ah-bad)"/>
+
+  <!-- crash 1 result -->
+  <rect x="250" y="328" width="260" height="90" rx="14" fill="var(--card)" stroke="var(--bad)" stroke-width="1.4"/>
+  <text class="t" x="268" y="354" font-size="14">커밋 기록 없음</text>
+  <text class="s m" x="492" y="354" text-anchor="end">no TxE</text>
+  <text class="ml" x="268" y="380">복구 →</text>
+  <text class="ml" x="320" y="380" font-weight="700">트랜잭션 버림</text>
+  <rect x="268" y="390" width="120" height="20" rx="10" fill="var(--lane)"/>
+  <text class="s" x="328" y="404" text-anchor="middle" font-size="11.5" font-weight="700">쓰기 전 상태</text>
+
+  <!-- crash 2 result -->
+  <rect x="550" y="328" width="260" height="90" rx="14" fill="var(--card)" stroke="var(--bad)" stroke-width="1.4"/>
+  <text class="t" x="568" y="354" font-size="14">커밋 기록 있음</text>
+  <text class="s m" x="792" y="354" text-anchor="end">TxE ok</text>
+  <text class="ml" x="568" y="380">복구 →</text>
+  <text class="ml" x="620" y="380" font-weight="700">저널 재생</text>
+  <text class="s m" x="690" y="380">redo</text>
+  <rect x="568" y="390" width="120" height="20" rx="10" fill="var(--ret-bg)"/>
+  <text class="s" x="628" y="404" text-anchor="middle" font-size="11.5" font-weight="700" style="fill:var(--ret)">쓰기 후 상태</text>
+
+  <!-- ===== ext4 data modes ===== -->
+  <rect x="30" y="440" width="300" height="100" rx="14" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <text class="mh" x="48" y="468">data=journal</text>
+  <rect class="meta" x="48" y="482" width="22" height="18" rx="4"/><rect class="data" x="74" y="482" width="22" height="18" rx="4"/>
+  <text class="ml" x="106" y="496">저널: 메타 + 데이터</text>
+  <text class="ml" x="48" y="526">데이터 두 번 씀</text>
+
+  <rect x="350" y="440" width="300" height="100" rx="14" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="mh" x="368" y="468">data=ordered</text>
+  <rect x="566" y="453" width="66" height="22" rx="11" fill="var(--core)"/>
+  <text x="599" y="468" font-size="12" font-weight="700" fill="var(--bg)" text-anchor="middle">기본값</text>
+  <rect class="meta" x="368" y="482" width="22" height="18" rx="4"/>
+  <text class="ml" x="400" y="496">저널: 메타</text>
+  <text class="ml" x="368" y="526">데이터 먼저 → 커밋</text>
+
+  <rect x="670" y="440" width="300" height="100" rx="14" fill="var(--card)" stroke="var(--stroke)" stroke-width="1.4"/>
+  <text class="mh" x="688" y="468">data=writeback</text>
+  <rect class="meta" x="688" y="482" width="22" height="18" rx="4"/>
+  <text class="ml" x="720" y="496">저널: 메타</text>
+  <text class="ml" x="688" y="526">데이터 순서 없음</text>
+  <rect x="826" y="512" width="128" height="20" rx="10" fill="var(--bad-bg)"/>
+  <text x="890" y="526" font-size="11.5" font-weight="700" fill="var(--bad)" text-anchor="middle">옛 데이터 노출</text>
+</svg>
+</figure>
+</body>
+</html>

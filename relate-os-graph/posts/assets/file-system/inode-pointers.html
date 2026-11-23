@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inode Block Pointers</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .h { fill: var(--ink); font-size: 13.5px; font-weight: 700; text-anchor: middle; }
+  .hs { fill: var(--muted); font-size: 11.5px; text-anchor: middle; font-family: "JetBrains Mono", Consolas, monospace; }
+  .slot { font-size: 13.5px; font-weight: 700; fill: var(--core-ink); }
+  .si { font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; font-weight: 700; fill: var(--core); }
+  .cnt { font-family: "JetBrains Mono", Consolas, monospace; font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .sz { font-family: "JetBrains Mono", Consolas, monospace; font-size: 15px; font-weight: 700; text-anchor: middle; fill: var(--ink); }
+  .rd { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12.5px; font-weight: 700; text-anchor: middle; fill: var(--bg); }
+  .ib { fill: var(--hw-bg); stroke: var(--hw); stroke-width: 1.5; }
+  .db { fill: var(--ret-bg); stroke: var(--ret); stroke-width: 1.5; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 560" role="img" aria-label="블록 4 KiB, 포인터 4바이트인 ext2·ext3식 inode의 i_block 15칸. 0~11번 직접 포인터는 데이터 블록 12개(48 KiB)를 바로 가리킨다. 12번 단일 간접 포인터는 포인터 1024개를 담은 블록을 거쳐 데이터 1024개(4 MiB), 13번 이중 간접은 두 단계를 거쳐 1024²개(4 GiB), 14번 삼중 간접은 세 단계를 거쳐 1024³개(4 TiB)를 가리킨다. 단계마다 디스크 읽기가 하나씩 늘고, 합계는 1,074,791,436블록 × 4 KiB, 약 4.004 TiB다">
+  <defs>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+  </defs>
+
+  <!-- ===== column headers ===== -->
+  <text class="h" x="345" y="40">삼중 간접</text><text class="hs" x="345" y="58">triple</text>
+  <text class="h" x="485" y="40">이중 간접</text><text class="hs" x="485" y="58">double</text>
+  <text class="h" x="625" y="40">단일 간접</text><text class="hs" x="625" y="58">single</text>
+  <text class="h" x="760" y="40">데이터 블록</text><text class="hs" x="760" y="58">4 KiB</text>
+  <text class="h" x="870" y="40">최대 크기</text>
+  <text class="h" x="950" y="40">추가 읽기</text>
+
+  <!-- ===== row lanes ===== -->
+  <rect x="270" y="125" width="720" height="70" rx="12" fill="var(--lane)"/>
+  <rect x="270" y="215" width="720" height="70" rx="12" fill="var(--lane)"/>
+  <rect x="270" y="305" width="720" height="70" rx="12" fill="var(--lane)"/>
+  <rect x="270" y="395" width="720" height="70" rx="12" fill="var(--lane)"/>
+
+  <!-- ===== inode card ===== -->
+  <rect x="30" y="72" width="220" height="398" rx="14" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <g fill="none" stroke="var(--core)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(48 82)">
+    <path d="M2 0 h10 l6 6 v14 a2 2 0 0 1-2 2 h-14 a2 2 0 0 1-2-2 v-18 a2 2 0 0 1 2-2z M12 0 v6 h6"/>
+  </g>
+  <text class="t" x="76" y="99">inode</text>
+  <text class="s m" x="234" y="99" text-anchor="end">i_block[15]</text>
+  <text class="s m" x="48" y="116" font-size="11.5">mode · uid · size · links …</text>
+
+  <!-- direct slot -->
+  <rect x="44" y="132" width="192" height="58" rx="8" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="si" x="54" y="152">[0–11]</text><text class="slot" x="112" y="152">직접</text>
+  <g fill="var(--card)" stroke="var(--core)" stroke-width="1">
+    <rect x="54" y="162" width="12" height="18" rx="2"/><rect x="69" y="162" width="12" height="18" rx="2"/><rect x="84" y="162" width="12" height="18" rx="2"/>
+    <rect x="99" y="162" width="12" height="18" rx="2"/><rect x="114" y="162" width="12" height="18" rx="2"/><rect x="129" y="162" width="12" height="18" rx="2"/>
+    <rect x="144" y="162" width="12" height="18" rx="2"/><rect x="159" y="162" width="12" height="18" rx="2"/><rect x="174" y="162" width="12" height="18" rx="2"/>
+    <rect x="189" y="162" width="12" height="18" rx="2"/><rect x="204" y="162" width="12" height="18" rx="2"/><rect x="219" y="162" width="12" height="18" rx="2"/>
+  </g>
+  <!-- single / double / triple slots -->
+  <rect x="44" y="230" width="192" height="40" rx="8" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="si" x="54" y="255">[12]</text><text class="slot" x="96" y="255">단일 간접</text>
+  <rect x="44" y="320" width="192" height="40" rx="8" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="si" x="54" y="345">[13]</text><text class="slot" x="96" y="345">이중 간접</text>
+  <rect x="44" y="410" width="192" height="40" rx="8" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="si" x="54" y="435">[14]</text><text class="slot" x="96" y="435">삼중 간접</text>
+
+  <!-- ===== row: direct ===== -->
+  <line x1="238" y1="160" x2="706" y2="160" stroke="var(--core)" stroke-width="1.8" marker-end="url(#ah-core)"/>
+  <rect class="db" x="710" y="140" width="100" height="40" rx="8"/>
+  <text class="cnt" x="760" y="165" style="fill:var(--ret)">12</text>
+  <text class="sz" x="870" y="165">48 KiB</text>
+  <circle cx="950" cy="160" r="13" fill="var(--muted)"/><text class="rd" x="950" y="165">0</text>
+
+  <!-- ===== row: single ===== -->
+  <line x1="238" y1="250" x2="566" y2="250" stroke="var(--core)" stroke-width="1.8" marker-end="url(#ah-core)"/>
+  <rect class="ib" x="570" y="230" width="110" height="40" rx="8"/>
+  <text class="cnt" x="625" y="255" style="fill:var(--hw-ink)">1</text>
+  <line x1="682" y1="250" x2="706" y2="250" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <rect class="db" x="710" y="230" width="100" height="40" rx="8"/>
+  <text class="cnt" x="760" y="255" style="fill:var(--ret)">1024</text>
+  <text class="sz" x="870" y="255">4 MiB</text>
+  <circle cx="950" cy="250" r="13" fill="var(--hw)"/><text class="rd" x="950" y="255">+1</text>
+
+  <!-- ===== row: double ===== -->
+  <line x1="238" y1="340" x2="426" y2="340" stroke="var(--core)" stroke-width="1.8" marker-end="url(#ah-core)"/>
+  <rect class="ib" x="430" y="320" width="110" height="40" rx="8"/>
+  <text class="cnt" x="485" y="345" style="fill:var(--hw-ink)">1</text>
+  <line x1="542" y1="340" x2="566" y2="340" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <rect class="ib" x="574" y="314" width="110" height="40" rx="8" opacity="0.55"/>
+  <rect class="ib" x="570" y="320" width="110" height="40" rx="8"/>
+  <text class="cnt" x="625" y="345" style="fill:var(--hw-ink)">1024</text>
+  <line x1="688" y1="340" x2="706" y2="340" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <rect class="db" x="710" y="320" width="100" height="40" rx="8"/>
+  <text class="cnt" x="760" y="345" style="fill:var(--ret)">1024²</text>
+  <text class="sz" x="870" y="345">4 GiB</text>
+  <circle cx="950" cy="340" r="13" fill="var(--hw)"/><text class="rd" x="950" y="345">+2</text>
+
+  <!-- ===== row: triple ===== -->
+  <line x1="238" y1="430" x2="286" y2="430" stroke="var(--core)" stroke-width="1.8" marker-end="url(#ah-core)"/>
+  <rect class="ib" x="290" y="410" width="110" height="40" rx="8"/>
+  <text class="cnt" x="345" y="435" style="fill:var(--hw-ink)">1</text>
+  <line x1="402" y1="430" x2="426" y2="430" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <rect class="ib" x="434" y="404" width="110" height="40" rx="8" opacity="0.55"/>
+  <rect class="ib" x="430" y="410" width="110" height="40" rx="8"/>
+  <text class="cnt" x="485" y="435" style="fill:var(--hw-ink)">1024</text>
+  <line x1="548" y1="430" x2="566" y2="430" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <rect class="ib" x="574" y="404" width="110" height="40" rx="8" opacity="0.55"/>
+  <rect class="ib" x="570" y="410" width="110" height="40" rx="8"/>
+  <text class="cnt" x="625" y="435" style="fill:var(--hw-ink)">1024²</text>
+  <line x1="688" y1="430" x2="706" y2="430" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <rect class="db" x="710" y="410" width="100" height="40" rx="8"/>
+  <text class="cnt" x="760" y="435" style="fill:var(--ret)">1024³</text>
+  <text class="sz" x="870" y="435">4 TiB</text>
+  <circle cx="950" cy="430" r="13" fill="var(--hw)"/><text class="rd" x="950" y="435">+3</text>
+
+  <!-- ===== total ===== -->
+  <rect x="30" y="490" width="940" height="52" rx="14" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <text x="52" y="521" font-size="14" font-weight="700" fill="var(--core-ink)">블록당 포인터</text>
+  <text class="m" x="156" y="521" font-size="13.5" fill="var(--core-ink)">4096 B ÷ 4 B = 1024</text>
+  <text class="m" x="950" y="521" font-size="14" font-weight="700" fill="var(--core-ink)" text-anchor="end">(12 + 1024 + 1024² + 1024³) × 4 KiB ≈ 4.004 TiB</text>
+</svg>
+</figure>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File Allocation Methods</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+    --bad: #A32D2D; --bad-bg: #FCEBEB; --used: #DEDCD3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+      --bad: #F09595; --bad-bg: #501313; --used: #3A3A37;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .bn { font-family: "JetBrains Mono", Consolas, monospace; font-size: 10px; fill: var(--muted); }
+  .ord { font-family: "JetBrains Mono", Consolas, monospace; font-size: 15px; font-weight: 700; fill: var(--core-ink); text-anchor: middle; }
+  .ordh { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; font-weight: 700; fill: var(--hw-ink); text-anchor: middle; }
+  .tag { font-size: 13px; font-weight: 700; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 510" role="img" aria-label="16개 블록 디스크에서 세 가지 파일 할당 방식을 비교한다. 연속 할당은 a.txt를 시작 4, 길이 3으로 4·5·6번 블록에 이어 놓아 i번째 블록 위치를 4+i로 바로 계산하지만, 빈 블록이 다섯 개 있어도 흩어져 있으면 연속 세 칸을 못 구하는 외부 단편화가 생긴다. 연결 할당(FAT)은 b.txt의 시작 블록 9만 디렉터리에 두고 FAT 표에 9→2→14→EOF 체인을 기록한다. 색인 할당은 c.txt의 색인 블록 11에 데이터 블록 번호 1, 6, 13을 모아 둔다">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+  </defs>
+
+  <!-- ===== contiguous ===== -->
+  <rect x="20" y="20" width="300" height="448" rx="16" fill="var(--lane)"/>
+  <text class="t" x="40" y="52">연속 할당</text>
+  <text class="s m" x="40" y="70">contiguous</text>
+  <rect x="36" y="86" width="268" height="40" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <g class="ico" transform="translate(48 96)" style="stroke:var(--muted)"><path d="M0 3 a2 2 0 0 1 2-2 h5 l2 2 h7 a2 2 0 0 1 2 2 v9 a2 2 0 0 1-2 2 h-14 a2 2 0 0 1-2-2z"/></g>
+  <text class="m" x="76" y="111" font-size="13.5" fill="var(--ink)">a.txt</text>
+  <text class="m" x="290" y="111" font-size="13" font-weight="700" fill="var(--core)" text-anchor="end">start 4 · len 3</text>
+  <rect x="36" y="146" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="40" y="157">0</text>
+  <rect x="82" y="146" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="86" y="157">1</text>
+  <rect x="128" y="146" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="132" y="157">2</text>
+  <rect x="174" y="146" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="178" y="157">3</text>
+  <rect x="36" y="192" width="40" height="40" rx="7" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="ord" x="56.0" y="219">1</text>
+  <text class="bn" x="40" y="203">4</text>
+  <rect x="82" y="192" width="40" height="40" rx="7" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="ord" x="102.0" y="219">2</text>
+  <text class="bn" x="86" y="203">5</text>
+  <rect x="128" y="192" width="40" height="40" rx="7" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="ord" x="148.0" y="219">3</text>
+  <text class="bn" x="132" y="203">6</text>
+  <rect x="174" y="192" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="178" y="203">7</text>
+  <rect x="36" y="238" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="40" y="249">8</text>
+  <rect x="82" y="238" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="86" y="249">9</text>
+  <rect x="128" y="238" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="132" y="249">10</text>
+  <rect x="174" y="238" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="178" y="249">11</text>
+  <rect x="36" y="284" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="40" y="295">12</text>
+  <rect x="82" y="284" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="86" y="295">13</text>
+  <rect x="128" y="284" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="132" y="295">14</text>
+  <rect x="174" y="284" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="178" y="295">15</text>
+  <rect x="226" y="146" width="78" height="178" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="" x="265" y="170" font-size="13" font-weight="700" fill="var(--ink)" text-anchor="middle">위치 계산</text>
+  <line x1="236" y1="180" x2="294" y2="180" stroke="var(--stroke)"/>
+  <text class="" x="265" y="206" font-size="12.5" fill="var(--ink)" text-anchor="middle">블록 i</text>
+  <text class="m" x="265" y="232" font-size="12.5" fill="var(--ink)" text-anchor="middle">→ 4 + i</text>
+  <rect x="36" y="344" width="268" height="30" rx="15" fill="var(--ret-bg)"/>
+  <circle cx="54" cy="359" r="9" fill="var(--ret)"/>
+  <path d="M49.5 359 l3 3 l6 -6" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text class="tag" x="72" y="364" style="fill:var(--ret)">순차·임의 접근 빠름</text>
+  <rect x="36" y="382" width="268" height="30" rx="15" fill="var(--bad-bg)"/>
+  <circle cx="54" cy="397" r="9" fill="var(--bad)"/>
+  <path d="M50.5 393.5 l7 7 M57.5 393.5 l-7 7" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round"/>
+  <text class="tag" x="72" y="402" style="fill:var(--bad)">외부 단편화</text>
+  <rect x="36" y="420" width="268" height="30" rx="15" fill="var(--bad-bg)"/>
+  <circle cx="54" cy="435" r="9" fill="var(--bad)"/>
+  <path d="M50.5 431.5 l7 7 M57.5 431.5 l-7 7" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round"/>
+  <text class="tag" x="72" y="440" style="fill:var(--bad)">파일 키우기 어려움</text>
+
+  <!-- ===== linked · FAT ===== -->
+  <rect x="350" y="20" width="300" height="448" rx="16" fill="var(--lane)"/>
+  <text class="t" x="370" y="52">연결 할당</text>
+  <text class="s m" x="370" y="70">linked · FAT</text>
+  <rect x="366" y="86" width="268" height="40" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <g class="ico" transform="translate(378 96)" style="stroke:var(--muted)"><path d="M0 3 a2 2 0 0 1 2-2 h5 l2 2 h7 a2 2 0 0 1 2 2 v9 a2 2 0 0 1-2 2 h-14 a2 2 0 0 1-2-2z"/></g>
+  <text class="m" x="406" y="111" font-size="13.5" fill="var(--ink)">b.txt</text>
+  <text class="m" x="620" y="111" font-size="13" font-weight="700" fill="var(--core)" text-anchor="end">start 9</text>
+  <rect x="366" y="146" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="370" y="157">0</text>
+  <rect x="412" y="146" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="416" y="157">1</text>
+  <rect x="458" y="146" width="40" height="40" rx="7" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="ord" x="478.0" y="173">2</text>
+  <text class="bn" x="462" y="157">2</text>
+  <rect x="504" y="146" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="508" y="157">3</text>
+  <rect x="366" y="192" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="370" y="203">4</text>
+  <rect x="412" y="192" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="416" y="203">5</text>
+  <rect x="458" y="192" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="462" y="203">6</text>
+  <rect x="504" y="192" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="508" y="203">7</text>
+  <rect x="366" y="238" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="370" y="249">8</text>
+  <rect x="412" y="238" width="40" height="40" rx="7" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="ord" x="432.0" y="265">1</text>
+  <text class="bn" x="416" y="249">9</text>
+  <rect x="458" y="238" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="462" y="249">10</text>
+  <rect x="504" y="238" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="508" y="249">11</text>
+  <rect x="366" y="284" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="370" y="295">12</text>
+  <rect x="412" y="284" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="416" y="295">13</text>
+  <rect x="458" y="284" width="40" height="40" rx="7" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="ord" x="478.0" y="311">3</text>
+  <text class="bn" x="462" y="295">14</text>
+  <rect x="504" y="284" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="508" y="295">15</text>
+  <rect x="556" y="146" width="78" height="178" rx="10" fill="var(--card)" stroke="var(--hw)"/>
+  <text class="m" x="595" y="170" font-size="13" font-weight="700" fill="var(--ink)" text-anchor="middle">FAT</text>
+  <line x1="566" y1="180" x2="624" y2="180" stroke="var(--stroke)"/>
+  <text class="m" x="595" y="206" font-size="12.5" fill="var(--ink)" text-anchor="middle">9 → 2</text>
+  <text class="m" x="595" y="232" font-size="12.5" fill="var(--ink)" text-anchor="middle">2 → 14</text>
+  <text class="m" x="595" y="258" font-size="12.5" fill="var(--ink)" text-anchor="middle">14 → EOF</text>
+  <rect x="366" y="344" width="268" height="30" rx="15" fill="var(--ret-bg)"/>
+  <circle cx="384" cy="359" r="9" fill="var(--ret)"/>
+  <path d="M379.5 359 l3 3 l6 -6" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text class="tag" x="402" y="364" style="fill:var(--ret)">외부 단편화 없음</text>
+  <rect x="366" y="382" width="268" height="30" rx="15" fill="var(--bad-bg)"/>
+  <circle cx="384" cy="397" r="9" fill="var(--bad)"/>
+  <path d="M380.5 393.5 l7 7 M387.5 393.5 l-7 7" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round"/>
+  <text class="tag" x="402" y="402" style="fill:var(--bad)">체인 따라 탐색</text>
+  <rect x="366" y="420" width="268" height="30" rx="15" fill="var(--bad-bg)"/>
+  <circle cx="384" cy="435" r="9" fill="var(--bad)"/>
+  <path d="M380.5 431.5 l7 7 M387.5 431.5 l-7 7" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round"/>
+  <text class="tag" x="402" y="440" style="fill:var(--bad)">하드 링크 불가</text>
+
+  <!-- ===== indexed ===== -->
+  <rect x="680" y="20" width="300" height="448" rx="16" fill="var(--lane)"/>
+  <text class="t" x="700" y="52">색인 할당</text>
+  <text class="s m" x="700" y="70">indexed</text>
+  <rect x="696" y="86" width="268" height="40" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <g class="ico" transform="translate(708 96)" style="stroke:var(--muted)"><path d="M0 3 a2 2 0 0 1 2-2 h5 l2 2 h7 a2 2 0 0 1 2 2 v9 a2 2 0 0 1-2 2 h-14 a2 2 0 0 1-2-2z"/></g>
+  <text class="m" x="736" y="111" font-size="13.5" fill="var(--ink)">c.txt</text>
+  <text class="m" x="950" y="111" font-size="13" font-weight="700" fill="var(--core)" text-anchor="end">index 11</text>
+  <rect x="696" y="146" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="700" y="157">0</text>
+  <rect x="742" y="146" width="40" height="40" rx="7" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="ord" x="762.0" y="173">1</text>
+  <text class="bn" x="746" y="157">1</text>
+  <rect x="788" y="146" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="792" y="157">2</text>
+  <rect x="834" y="146" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="838" y="157">3</text>
+  <rect x="696" y="192" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="700" y="203">4</text>
+  <rect x="742" y="192" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="746" y="203">5</text>
+  <rect x="788" y="192" width="40" height="40" rx="7" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="ord" x="808.0" y="219">2</text>
+  <text class="bn" x="792" y="203">6</text>
+  <rect x="834" y="192" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="838" y="203">7</text>
+  <rect x="696" y="238" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="700" y="249">8</text>
+  <rect x="742" y="238" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="746" y="249">9</text>
+  <rect x="788" y="238" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="792" y="249">10</text>
+  <rect x="834" y="238" width="40" height="40" rx="7" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.6"/>
+  <text class="ordh" x="854.0" y="264">idx</text>
+  <text class="bn" x="838" y="249">11</text>
+  <rect x="696" y="284" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="700" y="295">12</text>
+  <rect x="742" y="284" width="40" height="40" rx="7" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="ord" x="762.0" y="311">3</text>
+  <text class="bn" x="746" y="295">13</text>
+  <rect x="788" y="284" width="40" height="40" rx="7" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="bn" x="792" y="295">14</text>
+  <rect x="834" y="284" width="40" height="40" rx="7" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="bn" x="838" y="295">15</text>
+  <rect x="886" y="146" width="78" height="178" rx="10" fill="var(--card)" stroke="var(--hw)"/>
+  <text class="" x="925" y="170" font-size="13" font-weight="700" fill="var(--ink)" text-anchor="middle">블록 11</text>
+  <line x1="896" y1="180" x2="954" y2="180" stroke="var(--stroke)"/>
+  <text class="m" x="925" y="206" font-size="12.5" fill="var(--ink)" text-anchor="middle">[0] 1</text>
+  <text class="m" x="925" y="232" font-size="12.5" fill="var(--ink)" text-anchor="middle">[1] 6</text>
+  <text class="m" x="925" y="258" font-size="12.5" fill="var(--ink)" text-anchor="middle">[2] 13</text>
+  <rect x="696" y="344" width="268" height="30" rx="15" fill="var(--ret-bg)"/>
+  <circle cx="714" cy="359" r="9" fill="var(--ret)"/>
+  <path d="M709.5 359 l3 3 l6 -6" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text class="tag" x="732" y="364" style="fill:var(--ret)">임의 접근 빠름</text>
+  <rect x="696" y="382" width="268" height="30" rx="15" fill="var(--ret-bg)"/>
+  <circle cx="714" cy="397" r="9" fill="var(--ret)"/>
+  <path d="M709.5 397 l3 3 l6 -6" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text class="tag" x="732" y="402" style="fill:var(--ret)">외부 단편화 없음</text>
+  <rect x="696" y="420" width="268" height="30" rx="15" fill="var(--bad-bg)"/>
+  <circle cx="714" cy="435" r="9" fill="var(--bad)"/>
+  <path d="M710.5 431.5 l7 7 M717.5 431.5 l-7 7" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round"/>
+  <text class="tag" x="732" y="440" style="fill:var(--bad)">색인 블록 공간</text>
+
+  <!-- legend -->
+  <rect x="270" y="482" width="18" height="18" rx="4" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="s" x="296" y="496">이 파일</text>
+  <rect x="390" y="482" width="18" height="18" rx="4" fill="var(--hw-bg)" stroke="var(--hw)"/>
+  <text class="s" x="416" y="496">색인 블록</text>
+  <rect x="510" y="482" width="18" height="18" rx="4" fill="var(--used)" stroke="var(--stroke)"/>
+  <text class="s" x="536" y="496">다른 파일</text>
+  <rect x="630" y="482" width="18" height="18" rx="4" fill="var(--card)" stroke="var(--stroke)" stroke-dasharray="4 3"/>
+  <text class="s" x="656" y="496">빈 블록</text>
+</svg>
+</figure>
+</body>
+</html>
+
