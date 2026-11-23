@@ -1,0 +1,103 @@
+{
+  "topic": "cpu-scheduling",
+  "session": {
+    "id": "2026-11-23-05",
+    "date": "2026-11-23",
+    "summary": "5단원 CPU 스케줄링. 스케줄러와 디스패처, 선점형과 비선점형, 평가 기준(반환·대기·응답 시간, 처리량, 공정성)을 정리하고, 같은 작업 4개를 FCFS·SJF·SRTF·RR(q=2)로 직접 계산해 간트 차트로 비교했다. 우선순위 스케줄링의 기아와 에이징, MLFQ의 다섯 규칙, 리눅스 CFS 개요까지 다뤘다. OSTEP 7·8·9장, 리눅스 커널 CFS 문서, UIC 강의 노트, 위키백과를 참고했다."
+  },
+  "concepts": [
+    {"slug": "cpu-scheduler", "name": "CPU 스케줄러", "level": 1, "summary": "준비 큐에 있는 프로세스 가운데 다음에 CPU를 쓸 프로세스를 고르는 커널 구성 요소 (단기 스케줄러, short-term scheduler)"},
+    {"slug": "dispatcher", "name": "디스패처", "level": 2, "summary": "스케줄러가 고른 프로세스에 실제로 CPU를 넘기는 모듈. 문맥 교환, 사용자 모드 전환, 재개 위치로 점프를 하며, 여기에 걸리는 시간을 디스패치 지연이라 한다"},
+    {"slug": "preemptive-scheduling", "name": "선점형 스케줄링", "level": 1, "summary": "실행 중인 프로세스를 타이머 인터럽트나 더 급한 프로세스의 도착 때 강제로 멈추고 다른 프로세스를 실행할 수 있는 방식. 현대 범용 운영체제의 스케줄러는 거의 모두 선점형이다"},
+    {"slug": "non-preemptive-scheduling", "name": "비선점형 스케줄링", "level": 1, "summary": "프로세스가 종료하거나 I/O 등으로 스스로 CPU를 내놓을 때만 스케줄링하는 방식 (협력적 스케줄링). 일단 실행되면 끝날 때까지 빼앗지 않는다"},
+    {"slug": "scheduling-criteria", "name": "스케줄링 평가 기준", "level": 1, "summary": "스케줄링 알고리즘을 비교하는 잣대. CPU 이용률, 처리량, 반환 시간, 대기 시간, 응답 시간, 공정성이 있으며 성능과 공정성은 자주 서로 부딪친다"},
+    {"slug": "turnaround-time", "name": "반환 시간", "level": 1, "summary": "작업이 도착해서 완료될 때까지 걸린 시간. 완료 시각 − 도착 시각 (turnaround time)"},
+    {"slug": "waiting-time", "name": "대기 시간", "level": 1, "summary": "프로세스가 준비 큐에서 CPU를 기다린 시간의 합. CPU만 쓰는 작업이라면 반환 시간 − 실행 시간과 같다"},
+    {"slug": "response-time", "name": "응답 시간", "level": 1, "summary": "작업이 도착해서 처음 CPU를 받을 때까지 걸린 시간. 첫 실행 시각 − 도착 시각. 대화형 시스템에서 중요하다"},
+    {"slug": "fcfs", "name": "선착순 스케줄링", "level": 1, "summary": "도착한 순서대로 끝까지 실행하는 비선점형 알고리즘 (FCFS, FIFO). 단순하고 기아가 없지만 긴 작업 뒤에 짧은 작업이 줄 서면 평균 반환 시간이 크게 늘어난다"},
+    {"slug": "convoy-effect", "name": "호위 효과", "level": 2, "summary": "자원을 오래 쓰는 작업 하나 뒤에 짧은 작업들이 줄줄이 묶여 기다리는 현상 (convoy effect). FCFS의 대표적 약점이다"},
+    {"slug": "sjf", "name": "최단 작업 우선", "level": 2, "summary": "다음 CPU 버스트가 가장 짧은 작업부터 끝까지 실행하는 비선점형 알고리즘 (SJF). 동시에 도착한 작업들에 대해서는 평균 반환 시간이 최적이지만 버스트 길이를 미리 알아야 한다"},
+    {"slug": "srtf", "name": "최소 잔여 시간 우선", "level": 2, "summary": "SJF에 선점을 더한 알고리즘 (SRTF, STCF, 선점형 SJF). 새 작업이 도착할 때마다 남은 시간이 가장 짧은 작업을 실행해 평균 반환 시간을 줄인다"},
+    {"slug": "round-robin", "name": "라운드 로빈", "level": 1, "summary": "준비 큐를 원형으로 돌며 각 프로세스를 타임 퀀텀만큼만 실행하고 맨 뒤로 보내는 선점형 알고리즘 (RR). 응답 시간은 좋지만 반환 시간은 나쁜 편이다"},
+    {"slug": "time-quantum", "name": "타임 퀀텀", "level": 2, "summary": "라운드 로빈 등에서 한 프로세스가 한 번에 쓸 수 있는 CPU 시간 (time slice). 짧으면 문맥 교환 비용이 커지고, 길면 FCFS처럼 동작해 응답성이 떨어진다"},
+    {"slug": "priority-scheduling", "name": "우선순위 스케줄링", "level": 2, "summary": "각 프로세스에 우선순위를 매겨 가장 높은 것부터 실행하는 방식. 선점형·비선점형 모두 가능하며 SJF는 예측 버스트가 짧을수록 우선순위가 높은 특수한 경우다"},
+    {"slug": "starvation", "name": "기아", "level": 2, "summary": "더 높은 우선순위의 작업이 계속 들어와서 낮은 우선순위 작업이 무기한 CPU를 받지 못하는 현상 (starvation, indefinite blocking)"},
+    {"slug": "aging", "name": "에이징", "level": 2, "summary": "오래 기다린 프로세스일수록 우선순위를 점점 올려 주어 기아를 막는 기법 (aging)"},
+    {"slug": "mlfq", "name": "다단계 피드백 큐", "level": 3, "summary": "우선순위가 다른 여러 큐를 두고, 작업이 CPU를 쓰는 모습을 관찰해 큐 사이를 옮기는 스케줄러 (MLFQ). 작업 길이를 몰라도 짧은 작업과 대화형 작업을 먼저 처리해 SJF와 RR의 장점을 함께 노린다"},
+    {"slug": "priority-boost", "name": "우선순위 부스트", "level": 3, "summary": "MLFQ에서 일정 주기 S마다 모든 작업을 맨 위 큐로 올리는 규칙. 기아를 막고 성격이 바뀐 작업을 다시 제대로 대우한다"},
+    {"slug": "cfs", "name": "완전 공정 스케줄러", "level": 3, "summary": "리눅스 2.6.23부터 쓰인 공정 분배 스케줄러 (CFS). 가상 실행 시간(vruntime)이 가장 작은 태스크를 레드-블랙 트리에서 골라 실행하고, nice 값을 가중치로 바꿔 CPU 몫을 나눈다. 6.6부터 EEVDF로 옮겨 가기 시작했다"}
+  ],
+  "prerequisites": [
+    {"from": "process-state", "to": "cpu-scheduler"},
+    {"from": "cpu-scheduler", "to": "dispatcher"},
+    {"from": "context-switch", "to": "dispatcher"},
+    {"from": "cpu-scheduler", "to": "preemptive-scheduling"},
+    {"from": "cpu-scheduler", "to": "non-preemptive-scheduling"},
+    {"from": "timer-interrupt", "to": "preemptive-scheduling"},
+    {"from": "cpu-scheduler", "to": "scheduling-criteria"},
+    {"from": "scheduling-criteria", "to": "turnaround-time"},
+    {"from": "scheduling-criteria", "to": "waiting-time"},
+    {"from": "scheduling-criteria", "to": "response-time"},
+    {"from": "non-preemptive-scheduling", "to": "fcfs"},
+    {"from": "fcfs", "to": "convoy-effect"},
+    {"from": "convoy-effect", "to": "sjf"},
+    {"from": "turnaround-time", "to": "sjf"},
+    {"from": "sjf", "to": "srtf"},
+    {"from": "preemptive-scheduling", "to": "srtf"},
+    {"from": "fcfs", "to": "round-robin"},
+    {"from": "preemptive-scheduling", "to": "round-robin"},
+    {"from": "response-time", "to": "round-robin"},
+    {"from": "round-robin", "to": "time-quantum"},
+    {"from": "context-switch", "to": "time-quantum"},
+    {"from": "sjf", "to": "priority-scheduling"},
+    {"from": "priority-scheduling", "to": "starvation"},
+    {"from": "starvation", "to": "aging"},
+    {"from": "round-robin", "to": "mlfq"},
+    {"from": "priority-scheduling", "to": "mlfq"},
+    {"from": "mlfq", "to": "priority-boost"},
+    {"from": "starvation", "to": "priority-boost"},
+    {"from": "time-quantum", "to": "cfs"},
+    {"from": "priority-scheduling", "to": "cfs"}
+  ],
+  "confusedWith": [
+    {"a": "cpu-scheduler", "b": "dispatcher", "note": "스케줄러는 다음에 실행할 프로세스를 '고르고', 디스패처는 고른 프로세스에 CPU를 실제로 '넘긴다'(문맥 교환·모드 전환·점프)"},
+    {"a": "sjf", "b": "srtf", "note": "SJF는 비선점형이라 실행 중인 작업을 끝까지 돌리고, SRTF는 더 짧은 작업이 도착하면 선점한다. OSTEP은 SRTF를 STCF(PSJF)라고 부른다"},
+    {"a": "turnaround-time", "b": "response-time", "note": "반환 시간은 도착부터 '완료'까지, 응답 시간은 도착부터 '처음 실행'까지다. RR은 응답 시간이 좋지만 반환 시간은 나쁘다"},
+    {"a": "waiting-time", "b": "response-time", "note": "대기 시간은 준비 큐에서 기다린 시간의 '합', 응답 시간은 첫 실행까지 기다린 시간이다. 위키백과는 wait time을 첫 실행까지로 정의하는 등 자료마다 정의가 다르다"},
+    {"a": "aging", "b": "priority-boost", "note": "에이징은 기다린 프로세스의 우선순위를 조금씩 올리고, MLFQ의 부스트는 주기 S마다 모든 작업을 한꺼번에 맨 위 큐로 올린다. 둘 다 기아를 막는다"}
+  ],
+  "questions": [
+    {"id": "2026-11-23-05-q1", "text": "같은 작업 집합에서 SRTF는 평균 반환 시간을, RR은 평균 응답 시간을 가장 줄이는 이유는 무엇인가?", "answered": true, "answer": "SRTF는 남은 시간이 짧은 작업을 먼저 끝내므로 완료 시각의 합이 작아진다. RR은 모든 작업을 조금씩 번갈아 실행하므로 첫 실행이 빨리 오지만, 각 작업의 완료는 늦춰져 반환 시간은 FCFS와 같거나 더 나빠진다(예제: A0/6, B2/4, C3/1, D4/2에서 SRTF 반환 5.75, RR(q=2) 응답 1.5, RR 반환 7.75 = FCFS).", "about": ["srtf", "round-robin", "turnaround-time", "response-time"]},
+    {"id": "2026-11-23-05-q2", "text": "타임 퀀텀은 얼마나 길게 잡아야 하는가?", "answered": true, "answer": "짧을수록 응답 시간은 좋아지지만 문맥 교환 비용이 커진다(퀀텀 10ms에 교환 1ms면 약 10%가 낭비). 너무 길면 FCFS처럼 동작한다. 경험 법칙으로 CPU 버스트의 약 80%가 퀀텀보다 짧도록 잡고, 현대 시스템은 대략 10~100ms를 쓴다. 퀀텀은 타이머 인터럽트 주기의 배수여야 한다.", "about": ["time-quantum", "round-robin"]},
+    {"id": "2026-11-23-05-q3", "text": "MLFQ는 작업 길이를 모르면서 어떻게 SJF를 흉내 내는가?", "answered": true, "answer": "새 작업을 일단 짧은 작업이라 가정해 맨 위 큐에 넣는다(규칙 3). 정말 짧으면 위쪽 큐에서 금방 끝나고, 길면 할당량을 다 쓸 때마다 한 단계씩 내려가(규칙 4) 긴 작업임이 드러난다.", "about": ["mlfq"]},
+    {"id": "2026-11-23-05-q4", "text": "MLFQ에서 스케줄러를 속이는(gaming) 방법은 무엇이고 어떤 규칙으로 막는가?", "answered": true, "answer": "할당량이 끝나기 직전(예: 99%)에 I/O를 일으켜 CPU를 내놓으면, '할당량 전에 CPU를 내놓으면 같은 큐에 남는다'는 옛 규칙 때문에 높은 큐에 머물며 CPU를 독차지할 수 있다. 큐마다 쓴 시간을 누적해서 세고, 몇 번 나눠 썼든 할당량을 다 쓰면 강등하는 규칙 4로 막는다.", "about": ["mlfq", "priority-boost"]},
+    {"id": "2026-11-23-05-q5", "text": "리눅스 6.6 이후 EEVDF에서 nice 값과 sched_setattr()로 요청한 time slice는 실제 선택 순서에 어떻게 함께 반영되는가?", "answered": false, "answer": null, "about": ["cfs"]},
+    {"id": "2026-11-23-05-q6", "text": "SJF의 다음 CPU 버스트 예측(지수 평균)은 오늘날 실제 운영체제 스케줄러에서도 쓰이는가?", "answered": false, "answer": null, "about": ["sjf", "srtf"]}
+  ],
+  "examples": [
+    {"id": "convoy-effect-ex1", "concept": "convoy-effect", "kind": "analogy", "body": "마트 계산대: 우유 하나만 든 손님 셋이 카트 세 대를 가득 채운 손님 뒤에 서면, 셋 다 한참 기다린다. 짧은 작업을 먼저 보내는 '소량 계산대'가 SJF의 발상이다."},
+    {"id": "round-robin-ex1", "concept": "round-robin", "kind": "code", "body": "#include <stdio.h>\n\n#define N 4\n#define Q 2   /* 타임 퀀텀 */\n\nint main(void) {\n    const char name[N] = {'A', 'B', 'C', 'D'};\n    int arrive[N] = {0, 2, 3, 4};\n    int burst[N]  = {6, 4, 1, 2};\n    int left[N], first[N], done[N];\n    int queue[64], head = 0, tail = 0, next = 0, t = 0;\n\n    for (int i = 0; i < N; i++) { left[i] = burst[i]; first[i] = -1; }\n    while (next < N && arrive[next] <= t) queue[tail++] = next++;\n\n    while (head < tail || next < N) {\n        if (head == tail) { t = arrive[next]; queue[tail++] = next++; continue; }\n        int p = queue[head++];\n        if (first[p] < 0) first[p] = t;\n        int run = left[p] < Q ? left[p] : Q;\n        t += run;\n        left[p] -= run;\n        /* 이번 퀀텀 동안 도착한 작업을 먼저 넣고, 쫓겨난 작업은 그 뒤에 */\n        while (next < N && arrive[next] <= t) queue[tail++] = next++;\n        if (left[p] > 0) queue[tail++] = p;\n        else done[p] = t;\n    }\n    for (int i = 0; i < N; i++)\n        printf(\"%c 반환 %2d  대기 %2d  응답 %d\\n\", name[i],\n               done[i] - arrive[i], done[i] - arrive[i] - burst[i],\n               first[i] - arrive[i]);\n    return 0;\n}\n// 출력: A 반환 13 대기 7 응답 0 / B 9 5 0 / C 4 3 3 / D 5 3 3"},
+    {"id": "time-quantum-ex1", "concept": "time-quantum", "kind": "analogy", "body": "토론 사회자: 한 사람당 발언 시간을 너무 짧게 주면 마이크를 넘기는 데 드는 시간이 더 많아지고, 너무 길게 주면 한 사람이 말을 마칠 때까지 다른 사람은 입을 열지 못한다."},
+    {"id": "aging-ex1", "concept": "aging", "kind": "analogy", "body": "응급실: 위급한 환자(높은 우선순위)가 계속 들어오면 가벼운 환자는 끝없이 밀린다(기아). 기다린 시간만큼 순번을 올려 주면 결국 진료를 받는다(에이징)."}
+  ],
+  "sources": [
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched.pdf", "title": "OSTEP Ch.7 Scheduling: Introduction", "kind": "book", "describes": ["turnaround-time", "response-time", "scheduling-criteria", "fcfs", "convoy-effect", "sjf", "srtf", "round-robin", "time-quantum", "preemptive-scheduling", "non-preemptive-scheduling"]},
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched-mlfq.pdf", "title": "OSTEP Ch.8 Scheduling: The Multi-Level Feedback Queue", "kind": "book", "describes": ["mlfq", "priority-boost", "starvation", "time-quantum"]},
+    {"url": "https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched-lottery.pdf", "title": "OSTEP Ch.9 Scheduling: Proportional Share (Linux CFS)", "kind": "book", "describes": ["cfs"]},
+    {"url": "https://docs.kernel.org/scheduler/sched-design-CFS.html", "title": "CFS Scheduler - The Linux Kernel documentation", "kind": "doc", "describes": ["cfs"]},
+    {"url": "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/6_CPU_Scheduling.html", "title": "UIC Operating Systems Course Notes: CPU Scheduling", "kind": "doc", "describes": ["cpu-scheduler", "dispatcher", "preemptive-scheduling", "non-preemptive-scheduling", "scheduling-criteria", "waiting-time", "fcfs", "convoy-effect", "sjf", "srtf", "priority-scheduling", "starvation", "aging", "round-robin", "time-quantum", "mlfq"]},
+    {"url": "https://en.wikipedia.org/wiki/Scheduling_(computing)", "title": "Scheduling (computing) - Wikipedia", "kind": "doc", "describes": ["cpu-scheduler", "dispatcher", "scheduling-criteria", "fcfs", "srtf", "priority-scheduling", "starvation", "round-robin", "cfs"]}
+  ],
+  "visuals": [
+    {"path": "posts/assets/cpu-scheduling/scheduler-dispatcher.png", "type": "diagram", "caption": "준비 큐 → CPU 스케줄러(선택) → 디스패처(문맥 교환·모드 전환·점프) → 실행, 그리고 스케줄링 결정이 일어나는 네 지점(선점형만 개입하는 곳 / 모든 스케줄러가 개입하는 곳)", "depicts": ["cpu-scheduler", "dispatcher", "preemptive-scheduling", "non-preemptive-scheduling", "context-switch", "timer-interrupt", "process-state"], "sources": ["https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/6_CPU_Scheduling.html", "https://en.wikipedia.org/wiki/Scheduling_(computing)"]},
+    {"path": "posts/assets/cpu-scheduling/gantt-compare.png", "type": "chart", "caption": "같은 작업 4개(A 0/6, B 2/4, C 3/1, D 4/2)를 FCFS·SJF·SRTF·RR(q=2)로 돌린 간트 차트와 평균 반환·대기·응답 시간", "depicts": ["fcfs", "convoy-effect", "sjf", "srtf", "round-robin", "time-quantum", "turnaround-time", "waiting-time", "response-time"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched.pdf", "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/6_CPU_Scheduling.html"]},
+    {"path": "posts/assets/cpu-scheduling/priority-aging.png", "type": "chart", "caption": "우선순위 3인 작업이 계속 도착할 때 우선순위 8인 작업 L: 에이징이 없으면 기아, 2단위 대기마다 우선순위를 1 올리면 10에 실행", "depicts": ["priority-scheduling", "starvation", "aging"], "sources": ["https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/6_CPU_Scheduling.html", "https://en.wikipedia.org/wiki/Scheduling_(computing)"]},
+    {"path": "posts/assets/cpu-scheduling/mlfq-trace.png", "type": "diagram", "caption": "3단 MLFQ(q=10ms)에서 긴 작업 A·D의 강등, 50ms에 도착한 짧은 작업 B, 100ms 부스트, 그리고 규칙 1~5", "depicts": ["mlfq", "priority-boost", "round-robin", "time-quantum"], "sources": ["https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched-mlfq.pdf"]}
+  ],
+  "post": {
+    "slug": "cpu-scheduling",
+    "title": "CPU 스케줄링: 누구에게, 언제, 얼마나 CPU를 줄까",
+    "path": "posts/2026-11-23-cpu-scheduling.md",
+    "explains": ["cpu-scheduler", "dispatcher", "preemptive-scheduling", "non-preemptive-scheduling", "scheduling-criteria", "turnaround-time", "waiting-time", "response-time", "fcfs", "convoy-effect", "sjf", "srtf", "round-robin", "time-quantum", "priority-scheduling", "starvation", "aging", "mlfq", "priority-boost", "cfs"]
+  }
+}
