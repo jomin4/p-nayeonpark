@@ -12,6 +12,15 @@ WHERE NOT ()-[:PREREQUISITE_OF]->(start)
 RETURN [n IN nodes(path) | n.name] AS learningPath
 ORDER BY size(learningPath) DESC;
 
+// 3-1. 가장 긴 학습 경로 (단원 번호 표시, Cypher 25 quantified path pattern)
+MATCH path = (start:Concept {slug: $from})-[:PREREQUISITE_OF]->{1,12}(goal:Concept {slug: $to})
+WITH path ORDER BY length(path) DESC LIMIT 1
+RETURN [n IN nodes(path) | n.name + ' (' + [(t:Topic)-[:HAS_CONCEPT]->(n) | t.order][0] + ')'] AS longestPath;
+
+// 3-2. 단원을 넘는 선수 관계 수
+MATCH (ta:Topic)-[:HAS_CONCEPT]->(:Concept)-[:PREREQUISITE_OF]->(:Concept)<-[:HAS_CONCEPT]-(tb:Topic)
+RETURN count(*) AS allPrereqs, count(CASE WHEN ta <> tb THEN 1 END) AS crossUnit;
+
 // 4. 복습 목록: 아직 답을 못 찾은 질문
 MATCH (q:Question {answered: false})-[:ABOUT]->(c:Concept)
 RETURN q.text AS openQuestion, collect(c.name) AS concepts;
