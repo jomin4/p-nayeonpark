@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Address Translation</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .v { font-family: "JetBrains Mono", Consolas, monospace; font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .cell { font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; text-anchor: middle; fill: var(--ink); }
+  .bit { font-family: "JetBrains Mono", Consolas, monospace; font-size: 11px; fill: var(--muted); }
+  .f { font-family: "JetBrains Mono", Consolas, monospace; font-size: 10.5px; font-weight: 700; text-anchor: middle; fill: var(--muted); }
+  .fk { font-family: "JetBrains Mono", Consolas, monospace; font-size: 10.5px; font-weight: 700; text-anchor: middle; fill: var(--hw-ink); }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 480" role="img" aria-label="32비트 가상 주소 0x00403A7C를 상위 20비트 페이지 번호 0x00403과 하위 12비트 오프셋 0xA7C로 나눈다. 페이지 번호로 페이지 테이블의 0x403번 항목을 찾으면 valid 1, rw, 프레임 번호 0x1F2가 있고, 프레임 번호 뒤에 오프셋을 그대로 붙여 물리 주소 0x001F2A7C를 만든다. 아래에는 x86 32비트 PTE의 비트 배치">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+  </defs>
+
+  <!-- virtual address -->
+  <text class="t" x="60" y="40">가상 주소</text>
+  <text class="s m" x="134" y="40">0x00403A7C</text>
+  <text class="bit" x="62" y="58">31</text>
+  <text class="bit" x="358" y="58" text-anchor="end">12</text>
+  <text class="bit" x="364" y="58">11</text>
+  <text class="bit" x="538" y="58" text-anchor="end">0</text>
+  <rect x="60" y="64" width="300" height="48" rx="8" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="v" x="210" y="95" style="fill:var(--core-ink)">0x00403</text>
+  <rect x="360" y="64" width="180" height="48" rx="8" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.6"/>
+  <text class="v" x="450" y="95" style="fill:var(--hw-ink)">0xA7C</text>
+  <text class="t" x="210" y="134" text-anchor="middle" font-size="13.5" style="fill:var(--core)">페이지 번호 <tspan class="s m" dx="2">VPN · 20 bit</tspan></text>
+  <text class="t" x="450" y="134" text-anchor="middle" font-size="13.5" style="fill:var(--hw)">오프셋 <tspan class="s m" dx="2">12 bit</tspan></text>
+
+  <!-- VPN -> page table index -->
+  <path d="M76 114 V315 H100" fill="none" stroke="var(--core)" stroke-width="2.2" marker-end="url(#ah-core)"/>
+
+  <!-- page table -->
+  <text class="t" x="150" y="172">페이지 테이블</text>
+  <rect x="330" y="154" width="110" height="26" rx="8" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="m" x="385" y="172" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--muted)">PTBR</text>
+  <line class="arr" x1="385" y1="181" x2="385" y2="192" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+  <rect x="150" y="196" width="290" height="180" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <g class="s m" font-size="11.5" text-anchor="middle">
+    <text x="180" y="212">valid</text><text x="255" y="212">prot</text><text x="370" y="212">PFN</text>
+  </g>
+  <line x1="150" y1="218" x2="440" y2="218" stroke="var(--stroke)"/>
+  <text class="cell" x="295" y="234" style="fill:var(--muted)">⋮</text>
+  <!-- rows: 0x401 y=240, 0x402 y=270, 0x403 y=284..314 hl, 0x404 -->
+  <g class="bit" text-anchor="end" font-size="12">
+    <text x="142" y="260">0x401</text><text x="142" y="290" >0x402</text><text x="142" y="350">0x404</text>
+  </g>
+  <text class="cell" x="180" y="260">1</text><text class="cell" x="255" y="260">r-x</text><text class="cell" x="370" y="260">0x0A3</text>
+  <line x1="150" y1="268" x2="440" y2="268" stroke="var(--stroke)"/>
+  <text class="cell" x="180" y="290" style="fill:var(--bad)">0</text><text class="cell" x="255" y="290" style="fill:var(--muted)">—</text><text class="cell" x="370" y="290" style="fill:var(--muted)">—</text>
+  <rect x="150" y="298" width="290" height="34" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.8"/>
+  <text x="142" y="320" text-anchor="end" class="m" font-size="12" font-weight="700" fill="var(--core)">0x403</text>
+  <text class="cell" x="180" y="320" font-weight="700">1</text><text class="cell" x="255" y="320" font-weight="700">rw-</text><text class="cell" x="370" y="320" font-weight="700" style="fill:var(--core-ink)">0x1F2</text>
+  <text class="cell" x="180" y="350">1</text><text class="cell" x="255" y="350">rw-</text><text class="cell" x="370" y="350">0x2C7</text>
+  <text class="cell" x="295" y="370" style="fill:var(--muted)">⋮</text>
+
+  <!-- offset copied straight -->
+  <path d="M542 88 H880 V256" fill="none" stroke="var(--hw)" stroke-width="2.2" marker-end="url(#ah-hw)"/>
+  <rect x="660" y="75" width="86" height="26" rx="13" fill="var(--bg)" stroke="var(--hw)"/>
+  <text class="s" x="703" y="93" text-anchor="middle" style="fill:var(--hw);font-weight:700">그대로</text>
+
+  <!-- PFN -> physical -->
+  <line x1="442" y1="315" x2="556" y2="285" stroke="var(--core)" stroke-width="2.2" marker-end="url(#ah-core)"/>
+
+  <!-- physical address -->
+  <text class="bit" x="562" y="254">31</text>
+  <text class="bit" x="808" y="254" text-anchor="end">12</text>
+  <text class="bit" x="814" y="254">11</text>
+  <text class="bit" x="958" y="254" text-anchor="end">0</text>
+  <rect x="560" y="260" width="250" height="48" rx="8" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.6"/>
+  <text class="v" x="685" y="291" style="fill:var(--core-ink)">0x001F2</text>
+  <rect x="810" y="260" width="150" height="48" rx="8" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.6"/>
+  <text class="v" x="885" y="291" style="fill:var(--hw-ink)">0xA7C</text>
+  <text class="t" x="685" y="330" text-anchor="middle" font-size="13.5" style="fill:var(--core)">프레임 번호 <tspan class="s m" dx="2">PFN</tspan></text>
+  <text class="t" x="885" y="330" text-anchor="middle" font-size="13.5" style="fill:var(--hw)">오프셋</text>
+  <text class="t" x="560" y="240">물리 주소</text>
+  <text class="s m" x="634" y="240">0x001F2A7C</text>
+
+  <!-- PTE bits (x86 32-bit) -->
+  <path d="M440 332 L556 418" fill="none" stroke="var(--stroke)" stroke-width="1.4" stroke-dasharray="4 4"/>
+  <text class="t" x="560" y="394" font-size="13.5">PTE 비트</text>
+  <text class="s m" x="626" y="394">x86 · 32 bit</text>
+  <!-- PFN 31-12 (110) | 11-9 | G PAT D A PCD PWT U/S R/W P  : 10 boxes x 25 = 250 ; start 560 -->
+  <g transform="translate(560 404)">
+    <rect x="0" y="0" width="140" height="30" rx="5" fill="var(--core-bg)" stroke="var(--core)"/>
+    <text class="f" x="70" y="20" style="fill:var(--core-ink)">PFN</text>
+    <rect x="140" y="0" width="30" height="30" fill="var(--card)" stroke="var(--stroke)"/>
+    <rect x="170" y="0" width="22" height="30" fill="var(--card)" stroke="var(--stroke)"/><text class="f" x="181" y="20">G</text>
+    <rect x="192" y="0" width="26" height="30" fill="var(--card)" stroke="var(--stroke)"/><text class="f" x="205" y="20">PAT</text>
+    <rect x="218" y="0" width="22" height="30" fill="var(--hw-bg)" stroke="var(--hw)"/><text class="fk" x="229" y="20">D</text>
+    <rect x="240" y="0" width="22" height="30" fill="var(--hw-bg)" stroke="var(--hw)"/><text class="fk" x="251" y="20">A</text>
+    <rect x="262" y="0" width="26" height="30" fill="var(--card)" stroke="var(--stroke)"/><text class="f" x="275" y="20">PCD</text>
+    <rect x="288" y="0" width="26" height="30" fill="var(--card)" stroke="var(--stroke)"/><text class="f" x="301" y="20">PWT</text>
+    <rect x="314" y="0" width="26" height="30" fill="var(--hw-bg)" stroke="var(--hw)"/><text class="fk" x="327" y="20">U/S</text>
+    <rect x="340" y="0" width="26" height="30" fill="var(--hw-bg)" stroke="var(--hw)"/><text class="fk" x="353" y="20">R/W</text>
+    <rect x="366" y="0" width="34" height="30" rx="5" fill="var(--hw-bg)" stroke="var(--hw)"/><text class="fk" x="383" y="20">P</text>
+    <g class="bit" font-size="10" text-anchor="middle">
+      <text x="10" y="46">31</text><text x="130" y="46">12</text><text x="155" y="46">11–9</text><text x="229" y="46">6</text><text x="251" y="46">5</text><text x="327" y="46">2</text><text x="353" y="46">1</text><text x="383" y="46">0</text>
+    </g>
+  </g>
+</svg>
+</figure>
+</body>
+</html>

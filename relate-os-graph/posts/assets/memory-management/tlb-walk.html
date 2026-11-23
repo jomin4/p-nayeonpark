@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TLB and Page Walk</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .ico { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .bit { font-family: "JetBrains Mono", Consolas, monospace; font-size: 11px; fill: var(--muted); text-anchor: middle; }
+  .v { font-family: "JetBrains Mono", Consolas, monospace; font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .lv { font-family: "JetBrains Mono", Consolas, monospace; font-size: 14px; font-weight: 700; text-anchor: middle; fill: var(--hw-ink); }
+  .ix { font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; font-weight: 700; text-anchor: middle; fill: var(--core-ink); }
+  .n { font-family: "JetBrains Mono", Consolas, monospace; font-size: 11px; font-weight: 700; text-anchor: middle; fill: var(--bg); }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 500" role="img" aria-label="x86-64 48비트 가상 주소를 9비트씩 네 개의 인덱스 254, 232, 225, 180과 12비트 오프셋으로 나눈다. MMU는 먼저 TLB를 찾고, 히트면 바로 프레임 번호와 오프셋으로 메모리에 접근한다. 미스면 CR3에서 시작해 PGD, PUD, PMD, PTE 네 단계 표를 차례로 읽는 페이지 워크를 하고, 항목이 유효하면 TLB를 채우고 명령을 다시 실행하며, 유효하지 않으면 페이지 폴트가 난다">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+    <marker id="ah-bad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--bad)"/></marker>
+  </defs>
+
+  <!-- ===== 48-bit virtual address ===== -->
+  <text class="t" x="40" y="62">가상 주소</text>
+  <text class="s m" x="40" y="80">0x7F3A1C2B4A7C</text>
+  <g class="bit">
+    <text x="240" y="34">63–48</text><text x="340" y="34">47–39</text><text x="460" y="34">38–30</text><text x="580" y="34">29–21</text><text x="700" y="34">20–12</text><text x="840" y="34">11–0</text>
+  </g>
+  <rect x="200" y="42" width="80" height="44" rx="6" fill="var(--lane)" stroke="var(--stroke)"/>
+  <text class="s" x="240" y="69" text-anchor="middle">부호 확장</text>
+  <rect x="280" y="42" width="120" height="44" fill="var(--core-bg)" stroke="var(--core)"/><text class="v" x="340" y="70" style="fill:var(--core-ink)">254</text>
+  <rect x="400" y="42" width="120" height="44" fill="var(--core-bg)" stroke="var(--core)"/><text class="v" x="460" y="70" style="fill:var(--core-ink)">232</text>
+  <rect x="520" y="42" width="120" height="44" fill="var(--core-bg)" stroke="var(--core)"/><text class="v" x="580" y="70" style="fill:var(--core-ink)">225</text>
+  <rect x="640" y="42" width="120" height="44" fill="var(--core-bg)" stroke="var(--core)"/><text class="v" x="700" y="70" style="fill:var(--core-ink)">180</text>
+  <rect x="760" y="42" width="160" height="44" rx="6" fill="var(--hw-bg)" stroke="var(--hw)"/><text class="v" x="840" y="70" style="fill:var(--hw-ink)">0xA7C</text>
+  <g class="s m" text-anchor="middle" font-size="12" font-weight="700">
+    <text x="340" y="104">PGD</text><text x="460" y="104">PUD</text><text x="580" y="104">PMD</text><text x="700" y="104">PTE</text><text x="840" y="104" style="fill:var(--hw)">offset</text>
+  </g>
+
+  <!-- ===== TLB row ===== -->
+  <rect x="40" y="150" width="190" height="76" rx="14" fill="var(--card)" stroke="var(--core)" stroke-width="1.6"/>
+  <g class="ico" transform="translate(58 170)" style="stroke:var(--core)">
+    <path d="M20 2 L8 20 H18 L14 34 L28 14 H18 Z"/>
+  </g>
+  <text class="t" x="98" y="183">TLB 조회</text>
+  <text class="s m" x="98" y="203">VPN → PFN</text>
+
+  <!-- hit -->
+  <line x1="232" y1="188" x2="356" y2="188" stroke="var(--ret)" stroke-width="2.2" marker-end="url(#ah-ret)"/>
+  <text class="t" x="294" y="178" text-anchor="middle" font-size="13.5" style="fill:var(--ret)">히트</text>
+  <text class="s m" x="294" y="208" text-anchor="middle">hit</text>
+  <rect x="360" y="160" width="190" height="56" rx="12" fill="var(--ret-bg)" stroke="var(--ret)"/>
+  <text class="t m" x="455" y="186" text-anchor="middle" font-size="14" style="fill:var(--ret)">PFN | offset</text>
+  <text class="s" x="455" y="205" text-anchor="middle">물리 주소</text>
+  <line class="arr" x1="552" y1="188" x2="606" y2="188" stroke="var(--muted)" stroke-width="1.8" marker-end="url(#ah)"/>
+  <rect x="610" y="160" width="150" height="56" rx="12" fill="var(--card)" stroke="var(--stroke)"/>
+  <g class="ico" transform="translate(626 172)" style="stroke:var(--muted)">
+    <rect x="0" y="4" width="28" height="24" rx="3"/><path d="M6 4V0M14 4V0M22 4V0M6 28v4M14 28v4M22 28v4"/>
+  </g>
+  <text class="t" x="666" y="186" font-size="14">메모리</text>
+  <text class="s m" x="666" y="204">1회 접근</text>
+
+  <!-- miss -->
+  <line x1="135" y1="228" x2="135" y2="290" stroke="var(--hw)" stroke-width="2.2" marker-end="url(#ah-hw)"/>
+  <text class="t" x="148" y="256" font-size="13.5" style="fill:var(--hw)">미스</text>
+  <text class="s m" x="148" y="274">miss</text>
+
+  <!-- ===== page walk lane ===== -->
+  <rect x="40" y="294" width="920" height="110" rx="16" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.4"/>
+  <text x="200" y="318" font-size="14" font-weight="700" fill="var(--hw-ink)">페이지 워크</text>
+  <text class="s m" x="284" y="318">page walk</text>
+
+  <rect x="60" y="340" width="76" height="40" rx="10" fill="var(--card)" stroke="var(--hw)"/>
+  <text class="lv" x="98" y="365">CR3</text>
+  <line x1="138" y1="360" x2="166" y2="360" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+
+  <!-- 4 tables -->
+  <g>
+    <rect x="170" y="330" width="110" height="60" rx="10" fill="var(--card)" stroke="var(--hw)"/>
+    <text class="lv" x="210" y="354">PGD</text>
+    <rect x="186" y="362" width="78" height="20" rx="6" fill="var(--core-bg)"/><text class="ix" x="225" y="377">[254]</text>
+    <circle cx="268" cy="344" r="9" fill="var(--hw)"/><text class="n" x="268" y="348">1</text>
+  </g>
+  <line x1="282" y1="360" x2="306" y2="360" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <g>
+    <rect x="310" y="330" width="110" height="60" rx="10" fill="var(--card)" stroke="var(--hw)"/>
+    <text class="lv" x="350" y="354">PUD</text>
+    <rect x="326" y="362" width="78" height="20" rx="6" fill="var(--core-bg)"/><text class="ix" x="365" y="377">[232]</text>
+    <circle cx="408" cy="344" r="9" fill="var(--hw)"/><text class="n" x="408" y="348">2</text>
+  </g>
+  <line x1="422" y1="360" x2="446" y2="360" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <g>
+    <rect x="450" y="330" width="110" height="60" rx="10" fill="var(--card)" stroke="var(--hw)"/>
+    <text class="lv" x="490" y="354">PMD</text>
+    <rect x="466" y="362" width="78" height="20" rx="6" fill="var(--core-bg)"/><text class="ix" x="505" y="377">[225]</text>
+    <circle cx="548" cy="344" r="9" fill="var(--hw)"/><text class="n" x="548" y="348">3</text>
+  </g>
+  <line x1="562" y1="360" x2="586" y2="360" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+  <g>
+    <rect x="590" y="330" width="110" height="60" rx="10" fill="var(--card)" stroke="var(--hw)"/>
+    <text class="lv" x="630" y="354">PTE</text>
+    <rect x="606" y="362" width="78" height="20" rx="6" fill="var(--core-bg)"/><text class="ix" x="645" y="377">[180]</text>
+    <circle cx="688" cy="344" r="9" fill="var(--hw)"/><text class="n" x="688" y="348">4</text>
+  </g>
+  <line x1="702" y1="360" x2="736" y2="360" stroke="var(--hw)" stroke-width="1.8" marker-end="url(#ah-hw)"/>
+
+  <!-- valid? -->
+  <rect x="740" y="330" width="130" height="60" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t" x="805" y="356" text-anchor="middle" font-size="14">유효?</text>
+  <text class="s m" x="805" y="376" text-anchor="middle">P = 1 ?</text>
+
+  <!-- yes: fill TLB + retry (loop back) -->
+  <path d="M872 352 H932 V128 H135 V146" fill="none" stroke="var(--ret)" stroke-width="2" marker-end="url(#ah-ret)"/>
+  <rect x="440" y="115" width="200" height="26" rx="13" fill="var(--bg)" stroke="var(--ret)"/>
+  <text class="s" x="540" y="133" text-anchor="middle" style="fill:var(--ret);font-weight:700">TLB 채우기 · 재시도</text>
+  <text class="s" x="940" y="250" style="fill:var(--ret);font-weight:700">예</text>
+
+  <!-- no: page fault -->
+  <line x1="805" y1="392" x2="805" y2="432" stroke="var(--bad)" stroke-width="2" marker-end="url(#ah-bad)"/>
+  <text class="s" x="815" y="418" style="fill:var(--bad);font-weight:700">아니오</text>
+  <rect x="730" y="436" width="150" height="48" rx="12" fill="var(--bad-bg)" stroke="var(--bad)"/>
+  <text class="t" x="805" y="457" text-anchor="middle" font-size="14" style="fill:var(--bad)">페이지 폴트</text>
+  <text class="s m" x="805" y="474" text-anchor="middle">page fault</text>
+
+  <!-- cost bracket -->
+  <path d="M170 414 v8 H700 v-8" stroke="var(--hw)" stroke-width="1.6" fill="none"/>
+  <text class="t" x="435" y="446" text-anchor="middle" font-size="14" style="fill:var(--hw)">메모리 접근 4회 추가</text>
+</svg>
+</figure>
+</body>
+</html>

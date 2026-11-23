@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fit and Fragmentation</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+    --bad: #A32D2D; --bad-bg: #FCEBEB; --used: #E3E1D9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+      --bad: #F09595; --bad-bg: #501313; --used: #3A3A37;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .used { fill: var(--used); stroke: var(--stroke); }
+  .hole { fill: var(--card); stroke: var(--muted); stroke-dasharray: 4 3; }
+  .alloc { fill: var(--core-bg); stroke: var(--core); stroke-width: 1.6; }
+  .lbl { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; font-weight: 700; fill: var(--muted); text-anchor: middle; }
+  .albl { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; font-weight: 700; fill: var(--core-ink); text-anchor: middle; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 516" role="img" aria-label="빈 칸 10K, 4K, 20K, 8K에 7K를 요청하면 최초 적합은 10K 칸을, 최적 적합은 8K 칸을, 최악 적합은 20K 칸을 골라 각각 3K, 1K, 13K가 남는다. 아래 왼쪽은 빈 칸 합이 15K여도 12K 요청이 실패하는 외부 단편화와 압축 후 성공하는 모습, 오른쪽은 13K 프로세스를 4K 페이지 4개에 담아 마지막 페이지에서 3K가 낭비되는 내부 단편화">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <marker id="ah-ret" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ret)"/></marker>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="7" height="7" fill="var(--bad-bg)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--bad)" stroke-width="2"/>
+    </pattern>
+  </defs>
+
+  <!-- ===== top: fit strategies ===== -->
+  <rect x="20" y="16" width="960" height="262" rx="16" fill="var(--lane)"/>
+  <text class="t" x="40" y="44">연속 메모리 할당</text>
+  <text class="s m" x="166" y="44">contiguous allocation</text>
+
+  <!-- x = 190 + K*8.5 ; OS0-6 H1 6-16 U16-22 H2 22-26 U26-34 H3 34-54 U54-60 H4 60-68 U68-80 -->
+  <!-- row 0: initial -->
+  <text class="t" x="40" y="80" font-size="14">빈 칸 목록</text>
+  <text class="s m" x="40" y="96">free list</text>
+  <g transform="translate(0 62)">
+    <rect class="used" x="190" y="0" width="51" height="34" rx="4"/><text class="lbl" x="215.5" y="22">OS</text>
+    <rect class="hole" x="241" y="0" width="85" height="34" rx="4"/><text class="lbl" x="283.5" y="22">10K</text>
+    <rect class="used" x="326" y="0" width="51" height="34" rx="4"/>
+    <rect class="hole" x="377" y="0" width="34" height="34" rx="4"/><text class="lbl" x="394" y="22">4K</text>
+    <rect class="used" x="411" y="0" width="68" height="34" rx="4"/>
+    <rect class="hole" x="479" y="0" width="170" height="34" rx="4"/><text class="lbl" x="564" y="22">20K</text>
+    <rect class="used" x="649" y="0" width="51" height="34" rx="4"/>
+    <rect class="hole" x="700" y="0" width="68" height="34" rx="4"/><text class="lbl" x="734" y="22">8K</text>
+    <rect class="used" x="768" y="0" width="102" height="34" rx="4"/>
+  </g>
+  <rect x="890" y="62" width="76" height="34" rx="10" fill="var(--core)"/>
+  <text class="m" x="928" y="84" text-anchor="middle" font-size="13" font-weight="700" fill="var(--bg)">요청 7K</text>
+
+  <line x1="190" y1="108" x2="966" y2="108" stroke="var(--stroke)"/>
+
+  <!-- row 1: first fit -> H1 -->
+  <text class="t" x="40" y="136" font-size="14">최초 적합</text>
+  <text class="s m" x="40" y="152">first fit</text>
+  <g transform="translate(0 118)">
+    <rect class="used" x="190" y="0" width="51" height="34" rx="4"/>
+    <rect class="alloc" x="241" y="0" width="59.5" height="34" rx="4"/><text class="albl" x="270.75" y="22">7K</text>
+    <rect class="hole" x="300.5" y="0" width="25.5" height="34" rx="4"/>
+    <rect class="used" x="326" y="0" width="51" height="34" rx="4"/>
+    <rect class="hole" x="377" y="0" width="34" height="34" rx="4"/>
+    <rect class="used" x="411" y="0" width="68" height="34" rx="4"/>
+    <rect class="hole" x="479" y="0" width="170" height="34" rx="4"/>
+    <rect class="used" x="649" y="0" width="51" height="34" rx="4"/>
+    <rect class="hole" x="700" y="0" width="68" height="34" rx="4"/>
+    <rect class="used" x="768" y="0" width="102" height="34" rx="4"/>
+  </g>
+  <rect x="890" y="118" width="76" height="34" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="m" x="928" y="140" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">남음 3K</text>
+
+  <!-- row 2: best fit -> H4 -->
+  <text class="t" x="40" y="186" font-size="14">최적 적합</text>
+  <text class="s m" x="40" y="202">best fit</text>
+  <g transform="translate(0 168)">
+    <rect class="used" x="190" y="0" width="51" height="34" rx="4"/>
+    <rect class="hole" x="241" y="0" width="85" height="34" rx="4"/>
+    <rect class="used" x="326" y="0" width="51" height="34" rx="4"/>
+    <rect class="hole" x="377" y="0" width="34" height="34" rx="4"/>
+    <rect class="used" x="411" y="0" width="68" height="34" rx="4"/>
+    <rect class="hole" x="479" y="0" width="170" height="34" rx="4"/>
+    <rect class="used" x="649" y="0" width="51" height="34" rx="4"/>
+    <rect class="alloc" x="700" y="0" width="59.5" height="34" rx="4"/><text class="albl" x="729.75" y="22">7K</text>
+    <rect class="hole" x="759.5" y="0" width="8.5" height="34" rx="2"/>
+    <rect class="used" x="768" y="0" width="102" height="34" rx="4"/>
+  </g>
+  <rect x="890" y="168" width="76" height="34" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="m" x="928" y="190" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">남음 1K</text>
+
+  <!-- row 3: worst fit -> H3 -->
+  <text class="t" x="40" y="236" font-size="14">최악 적합</text>
+  <text class="s m" x="40" y="252">worst fit</text>
+  <g transform="translate(0 218)">
+    <rect class="used" x="190" y="0" width="51" height="34" rx="4"/>
+    <rect class="hole" x="241" y="0" width="85" height="34" rx="4"/>
+    <rect class="used" x="326" y="0" width="51" height="34" rx="4"/>
+    <rect class="hole" x="377" y="0" width="34" height="34" rx="4"/>
+    <rect class="used" x="411" y="0" width="68" height="34" rx="4"/>
+    <rect class="alloc" x="479" y="0" width="59.5" height="34" rx="4"/><text class="albl" x="508.75" y="22">7K</text>
+    <rect class="hole" x="538.5" y="0" width="110.5" height="34" rx="4"/>
+    <rect class="used" x="649" y="0" width="51" height="34" rx="4"/>
+    <rect class="hole" x="700" y="0" width="68" height="34" rx="4"/>
+    <rect class="used" x="768" y="0" width="102" height="34" rx="4"/>
+  </g>
+  <rect x="890" y="218" width="76" height="34" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="m" x="928" y="240" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">남음 13K</text>
+
+  <!-- ===== bottom left: external fragmentation ===== -->
+  <rect x="20" y="296" width="470" height="202" rx="16" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t" x="40" y="324">외부 단편화</text>
+  <text class="s m" x="128" y="324">external</text>
+  <!-- x = 50 + K*9 : U0-8 H8-14 U14-20 H20-24 U24-31 H31-36 U36-40 -->
+  <g transform="translate(0 342)">
+    <rect class="used" x="50" y="0" width="72" height="34" rx="4"/>
+    <rect class="hole" x="122" y="0" width="54" height="34" rx="4"/><text class="lbl" x="149" y="22">6K</text>
+    <rect class="used" x="176" y="0" width="54" height="34" rx="4"/>
+    <rect class="hole" x="230" y="0" width="36" height="34" rx="4"/><text class="lbl" x="248" y="22">4K</text>
+    <rect class="used" x="266" y="0" width="63" height="34" rx="4"/>
+    <rect class="hole" x="329" y="0" width="45" height="34" rx="4"/><text class="lbl" x="351.5" y="22">5K</text>
+    <rect class="used" x="374" y="0" width="36" height="34" rx="4"/>
+  </g>
+  <rect x="420" y="342" width="56" height="34" rx="10" fill="var(--bad-bg)" stroke="var(--bad)"/>
+  <text class="m" x="448" y="364" text-anchor="middle" font-size="13" font-weight="700" fill="var(--bad)">12K ✕</text>
+  <text class="s m" x="50" y="396">6K + 4K + 5K = 15K</text>
+
+  <line x1="230" y1="404" x2="230" y2="440" stroke="var(--ret)" stroke-width="2.2" marker-end="url(#ah-ret)"/>
+  <text class="t" x="244" y="422" font-size="13.5" style="fill:var(--ret)">압축</text>
+  <text class="s m" x="284" y="422">compaction</text>
+
+  <g transform="translate(0 446)">
+    <rect class="used" x="50" y="0" width="225" height="34" rx="4"/>
+    <rect class="hole" x="275" y="0" width="135" height="34" rx="4"/><text class="lbl" x="342.5" y="22">15K</text>
+  </g>
+  <rect x="420" y="446" width="56" height="34" rx="10" fill="var(--ret-bg)" stroke="var(--ret)"/>
+  <text class="m" x="448" y="468" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ret)">12K ✓</text>
+
+  <!-- ===== bottom right: internal fragmentation ===== -->
+  <rect x="510" y="296" width="470" height="202" rx="16" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="t" x="530" y="324">내부 단편화</text>
+  <text class="s m" x="618" y="324">internal</text>
+  <rect x="824" y="306" width="138" height="28" rx="9" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="m" x="893" y="325" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--core-ink)">프로세스 13K</text>
+
+  <!-- 4 frames, each 4K = 96px -->
+  <g transform="translate(0 362)">
+    <rect class="alloc" x="540" y="0" width="96" height="44" rx="6"/><text class="albl" x="588" y="27">4K</text>
+    <rect class="alloc" x="642" y="0" width="96" height="44" rx="6"/><text class="albl" x="690" y="27">4K</text>
+    <rect class="alloc" x="744" y="0" width="96" height="44" rx="6"/><text class="albl" x="792" y="27">4K</text>
+    <rect x="846" y="0" width="96" height="44" rx="6" fill="url(#hatch)" stroke="var(--bad)"/>
+    <rect class="alloc" x="846" y="0" width="24" height="44" rx="6"/><text class="albl" x="858" y="27">1K</text>
+  </g>
+  <g class="s m" text-anchor="middle" font-size="12">
+    <text x="588" y="426">page 0</text><text x="690" y="426">page 1</text><text x="792" y="426">page 2</text><text x="894" y="426">page 3</text>
+  </g>
+  <path d="M872 440 v8 h70 v-8" stroke="var(--bad)" stroke-width="1.6" fill="none"/>
+  <text class="t" x="907" y="470" text-anchor="middle" font-size="14" style="fill:var(--bad)">3K 낭비</text>
+  <text class="s m" x="540" y="470">4K × 4 = 16K</text>
+</svg>
+</figure>
+</body>
+</html>
