@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access Matrix</title>
+<style>
+  :root {
+    --bg: #FAF9F5; --ink: #2C2C2A; --muted: #6B6A64; --lane: #F1EFE8; --card: #FFFFFF; --stroke: #D3D1C7;
+    --core: #534AB7; --core-bg: #EEEDFE; --core-ink: #26215C;
+    --hw: #BA7517; --hw-bg: #FAEEDA; --hw-ink: #633806; --ret: #0F6E56; --ret-bg: #E1F5EE;
+    --bad: #A32D2D; --bad-bg: #FCEBEB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1A1A18; --ink: #F1EFE8; --muted: #B4B2A9; --lane: #232321; --card: #262624; --stroke: #444441;
+      --core: #AFA9EC; --core-bg: #26215C; --core-ink: #EEEDFE;
+      --hw: #EF9F27; --hw-bg: #412402; --hw-ink: #FAEEDA; --ret: #5DCAA5; --ret-bg: #04342C;
+      --bad: #F09595; --bad-bg: #501313;
+    }
+  }
+  body { margin: 0; background: var(--bg); padding: 20px; font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  figure { margin: 0 auto; max-width: 1000px; }
+  svg { width: 100%; height: auto; display: block; }
+  .t { fill: var(--ink); font-size: 15px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12.5px; }
+  .m { font-family: "JetBrains Mono", Consolas, monospace; }
+  .hd { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12.5px; font-weight: 700; fill: var(--ink); text-anchor: middle; }
+  .cell { font-family: "JetBrains Mono", Consolas, monospace; font-size: 15px; font-weight: 700; text-anchor: middle; fill: var(--ink); }
+  .none { font-family: "JetBrains Mono", Consolas, monospace; font-size: 15px; text-anchor: middle; fill: var(--stroke); }
+  .ico { fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<figure>
+<svg viewBox="0 0 1000 510" role="img" aria-label="도메인 3개(alice, bob, httpd)와 객체 4개(report.txt, notes.md, /etc/passwd, 프린터)로 된 접근 행렬. report.txt 열을 잘라 객체에 붙이면 ACL(alice rw, bob r), bob 행을 잘라 도메인에 붙이면 권한 목록(report.txt r, notes.md rw, /etc/passwd r)이 된다. 리눅스 open()은 ACL을 검사한 뒤 파일 디스크립터를 돌려주고, 이후 read·write는 디스크립터만 확인한다">
+  <defs>
+    <marker id="ah-core" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--core)"/></marker>
+    <marker id="ah-hw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--hw)"/></marker>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--muted)"/></marker>
+    <g id="file"><path d="M0 0h10l6 6v14H0z"/><path d="M10 0v6h6"/></g>
+    <g id="user"><circle cx="8" cy="5" r="4.5"/><path d="M0 19c0-5 3.5-8 8-8s8 3 8 8"/></g>
+    <g id="server"><rect x="0" y="0" width="18" height="8" rx="2"/><rect x="0" y="11" width="18" height="8" rx="2"/><path d="M4 4h1M4 15h1"/></g>
+    <g id="printer"><rect x="3" y="0" width="12" height="6"/><rect x="0" y="6" width="18" height="9" rx="2"/><rect x="4" y="12" width="10" height="7"/></g>
+  </defs>
+
+  <!-- matrix frame -->
+  <rect x="40" y="30" width="550" height="252" rx="14" fill="var(--card)" stroke="var(--stroke)"/>
+  <line x1="40" y1="90" x2="590" y2="90" stroke="var(--stroke)"/>
+  <line x1="150" y1="30" x2="150" y2="282" stroke="var(--stroke)"/>
+  <line x1="40" y1="154" x2="590" y2="154" stroke="var(--stroke)" stroke-dasharray="3 4"/>
+  <line x1="40" y1="218" x2="590" y2="218" stroke="var(--stroke)" stroke-dasharray="3 4"/>
+  <line x1="260" y1="30" x2="260" y2="282" stroke="var(--stroke)" stroke-dasharray="3 4"/>
+  <line x1="370" y1="30" x2="370" y2="282" stroke="var(--stroke)" stroke-dasharray="3 4"/>
+  <line x1="480" y1="30" x2="480" y2="282" stroke="var(--stroke)" stroke-dasharray="3 4"/>
+  <text class="s" x="95" y="66" text-anchor="middle">도메인 ＼ 객체</text>
+
+  <!-- column headers (objects) -->
+  <g class="ico" stroke="var(--muted)">
+    <use href="#file" transform="translate(197 38)"/>
+    <use href="#file" transform="translate(307 38)"/>
+    <use href="#file" transform="translate(417 38)"/>
+    <use href="#printer" transform="translate(526 38)"/>
+  </g>
+  <text class="hd" x="205" y="80">report.txt</text>
+  <text class="hd" x="315" y="80">notes.md</text>
+  <text class="hd" x="425" y="80">/etc/passwd</text>
+  <text class="t" x="535" y="80" text-anchor="middle" font-size="13">프린터</text>
+
+  <!-- row headers (domains) -->
+  <g class="ico" stroke="var(--muted)">
+    <use href="#user" transform="translate(58 112)"/>
+    <use href="#user" transform="translate(58 176)"/>
+    <use href="#server" transform="translate(57 240)"/>
+  </g>
+  <text class="hd" x="112" y="127" font-size="14">alice</text>
+  <text class="hd" x="112" y="191" font-size="14">bob</text>
+  <text class="hd" x="112" y="255" font-size="14">httpd</text>
+
+  <!-- cells -->
+  <text class="cell" x="205" y="127">rw</text>
+  <text class="cell" x="315" y="127">r</text>
+  <text class="cell" x="425" y="127">r</text>
+  <text class="cell" x="535" y="127">print</text>
+  <text class="cell" x="205" y="191">r</text>
+  <text class="cell" x="315" y="191">rw</text>
+  <text class="cell" x="425" y="191">r</text>
+  <text class="none" x="535" y="191">—</text>
+  <text class="none" x="205" y="255">—</text>
+  <text class="none" x="315" y="255">—</text>
+  <text class="cell" x="425" y="255">r</text>
+  <text class="none" x="535" y="255">—</text>
+
+  <!-- column highlight (ACL) -->
+  <rect x="153" y="33" width="104" height="246" rx="10" fill="none" stroke="var(--core)" stroke-width="2.6"/>
+  <!-- row highlight (C-list) -->
+  <rect x="43" y="157" width="544" height="58" rx="10" fill="none" stroke="var(--hw)" stroke-width="2.6"/>
+
+  <!-- arrows -->
+  <line x1="205" y1="282" x2="205" y2="326" stroke="var(--core)" stroke-width="2.2" marker-end="url(#ah-core)"/>
+  <line x1="590" y1="186" x2="636" y2="186" stroke="var(--hw)" stroke-width="2.2" marker-end="url(#ah-hw)"/>
+  <text class="s" x="215" y="310">열</text>
+  <text class="s" x="604" y="176">행</text>
+
+  <!-- ACL card -->
+  <rect x="40" y="332" width="400" height="150" rx="14" fill="var(--core-bg)" stroke="var(--core)" stroke-width="1.4"/>
+  <g class="ico" stroke="var(--core)" transform="translate(62 352)"><use href="#file"/></g>
+  <text class="t" x="92" y="368" style="fill:var(--core-ink)">접근 제어 목록</text>
+  <text class="m" x="230" y="368" font-size="13" font-weight="700" fill="var(--core)">ACL · report.txt</text>
+  <rect x="62" y="390" width="160" height="40" rx="10" fill="var(--card)" stroke="var(--core)"/>
+  <text class="m" x="80" y="415" font-size="14" font-weight="700" fill="var(--ink)">alice</text>
+  <text class="m" x="200" y="415" font-size="14" font-weight="700" fill="var(--core)" text-anchor="end">rw</text>
+  <rect x="236" y="390" width="160" height="40" rx="10" fill="var(--card)" stroke="var(--core)"/>
+  <text class="m" x="254" y="415" font-size="14" font-weight="700" fill="var(--ink)">bob</text>
+  <text class="m" x="374" y="415" font-size="14" font-weight="700" fill="var(--core)" text-anchor="end">r</text>
+  <text class="s" x="62" y="462">객체마다 하나</text>
+  <text class="s" x="396" y="462" text-anchor="end">inode · 문지기 명단</text>
+
+  <!-- capability list card -->
+  <rect x="640" y="96" width="320" height="186" rx="14" fill="var(--hw-bg)" stroke="var(--hw)" stroke-width="1.4"/>
+  <g class="ico" stroke="var(--hw)" transform="translate(662 114)"><use href="#user"/></g>
+  <text class="t" x="692" y="130" style="fill:var(--hw-ink)">권한 목록</text>
+  <text class="m" x="938" y="130" font-size="13" font-weight="700" fill="var(--hw)" text-anchor="end">C-list · bob</text>
+  <g class="m" font-size="13.5" font-weight="700">
+    <rect x="662" y="142" width="276" height="34" rx="9" fill="var(--card)" stroke="var(--hw)"/>
+    <text x="678" y="164" fill="var(--ink)">report.txt</text><text x="922" y="164" fill="var(--hw)" text-anchor="end">r</text>
+    <rect x="662" y="180" width="276" height="34" rx="9" fill="var(--card)" stroke="var(--hw)"/>
+    <text x="678" y="202" fill="var(--ink)">notes.md</text><text x="922" y="202" fill="var(--hw)" text-anchor="end">rw</text>
+    <rect x="662" y="218" width="276" height="34" rx="9" fill="var(--card)" stroke="var(--hw)"/>
+    <text x="678" y="240" fill="var(--ink)">/etc/passwd</text><text x="922" y="240" fill="var(--hw)" text-anchor="end">r</text>
+  </g>
+  <text class="s" x="662" y="274" font-size="11.5">도메인마다 하나 · 열쇠 꾸러미</text>
+
+  <!-- Linux hybrid -->
+  <rect x="480" y="332" width="480" height="150" rx="14" fill="var(--lane)"/>
+  <text class="t" x="500" y="360">리눅스</text>
+  <rect x="500" y="384" width="110" height="46" rx="10" fill="var(--card)" stroke="var(--stroke)"/>
+  <text class="m" x="555" y="412" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--ink)">open()</text>
+  <rect x="646" y="384" width="120" height="46" rx="10" fill="var(--core-bg)" stroke="var(--core)"/>
+  <text class="t" x="706" y="412" text-anchor="middle" font-size="13.5" style="fill:var(--core-ink)">ACL 검사</text>
+  <rect x="802" y="384" width="136" height="46" rx="10" fill="var(--hw-bg)" stroke="var(--hw)"/>
+  <text class="m" x="870" y="412" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--hw-ink)">fd 3</text>
+  <line x1="612" y1="407" x2="642" y2="407" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <line x1="768" y1="407" x2="798" y2="407" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text class="s" x="706" y="458" text-anchor="middle">한 번</text>
+  <text class="s m" x="870" y="458" text-anchor="middle">read · write</text>
+</svg>
+</figure>
+</body>
+</html>
