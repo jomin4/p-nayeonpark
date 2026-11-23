@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OS Knowledge Graph</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --surface-2: #f3f2ee;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10);
+    --area-1: #2a78d6; --area-2: #eb6834; --area-3: #1baf7a; --area-4: #eda100; --area-5: #e87ba4; --area-6: #008300;
+    --lv-1: #86b6ef; --lv-2: #3987e5; --lv-3: #184f95;
+    --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95; --seq-7: #0d366b;
+    --good: #006300; --open: #d03b3b;
+    --link: #c3c2b7; --link-hi: #52514e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+      --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+      --area-1: #3987e5; --area-2: #d95926; --area-3: #199e70; --area-4: #c98500; --area-5: #d55181; --area-6: #0ca30c;
+      --lv-1: #86b6ef; --lv-2: #3987e5; --lv-3: #184f95;
+      --good: #0ca30c; --open: #e66767;
+      --link: #444441; --link-hi: #c3c2b7;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+    --area-1: #3987e5; --area-2: #d95926; --area-3: #199e70; --area-4: #c98500; --area-5: #d55181; --area-6: #0ca30c;
+    --lv-1: #86b6ef; --lv-2: #3987e5; --lv-3: #184f95;
+    --good: #0ca30c; --open: #e66767;
+    --link: #444441; --link-hi: #c3c2b7;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink);
+    font: 15px/1.6 "Pretendard", system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; }
+  main { max-width: 1280px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 20px; }
+  h1 { font-size: 26px; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 17px; margin: 0 0 4px; }
+  .sub { color: var(--ink-2); margin: 2px 0 0; font-size: 14px; }
+  .note { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  a { color: var(--area-1); }
+  .mono { font-family: "JetBrains Mono", Consolas, monospace; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .btn { border: 1px solid var(--ring); background: var(--surface); color: var(--ink-2); border-radius: 8px;
+    padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .btn:hover { color: var(--ink); border-color: var(--axis); }
+
+  .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 14px; padding: 18px 20px; min-width: 0; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .kpi .label { color: var(--ink-2); font-size: 13px; }
+  .kpi .value { font-size: 32px; font-weight: 700; line-height: 1.2; margin-top: 4px; }
+  .kpi .hint { color: var(--muted); font-size: 12.5px; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--ring); background: var(--surface);
+    color: var(--ink-2); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13.5px; cursor: pointer; }
+  .chip[aria-pressed="true"] { color: var(--ink); border-color: var(--ink-2); background: var(--surface-2); font-weight: 600; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .search { margin-left: auto; position: relative; }
+  .search input { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--ring);
+    background: var(--surface); color: var(--ink); width: 240px; }
+
+  .map { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+  @media (max-width: 980px) { .map { grid-template-columns: 1fr; } .search { margin-left: 0; } .search input { width: 100%; } }
+  #network { width: 100%; height: auto; display: block; background: var(--surface); border-radius: 10px; cursor: grab; touch-action: none; }
+  #network .node circle { stroke: var(--surface); stroke-width: 2; transition: opacity .15s; }
+  #network .node { cursor: pointer; }
+  #network .node text { font-size: 11px; fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 3px;
+    pointer-events: none; }
+  #network .link { stroke: var(--link); stroke-width: 1; transition: opacity .15s; }
+  #network .link.hi { stroke: var(--link-hi); stroke-width: 1.8; }
+  #network .area-label { font-size: 13px; font-weight: 700; fill: var(--ink-2); pointer-events: none; }
+  #network .dim { opacity: .12; }
+  #network .sel circle { stroke: var(--ink); stroke-width: 2.5; }
+  .map-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 10px; color: var(--muted); font-size: 12.5px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12.5px; }
+
+  .detail { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+  .detail h3 { font-size: 20px; margin: 4px 0 2px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+  .tag { font-size: 12px; border-radius: 6px; padding: 2px 8px; background: var(--surface-2); color: var(--ink-2); }
+  .detail h4 { font-size: 13px; color: var(--ink-2); margin: 16px 0 6px; font-weight: 600; }
+  .detail p { margin: 0; }
+  .linklist { display: flex; flex-wrap: wrap; gap: 6px; }
+  .clink { border: 1px solid var(--ring); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 2px 8px;
+    font: inherit; font-size: 13px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+  .clink:hover { border-color: var(--axis); }
+  .path { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 13px; }
+  .path .arrow { color: var(--muted); }
+  .thumbs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .thumbs a { display: block; border: 1px solid var(--ring); border-radius: 8px; overflow: hidden; background: var(--page); }
+  .thumbs img { width: 100%; display: block; }
+  .detail ul { margin: 0; padding-left: 18px; }
+  .detail li { margin: 3px 0; font-size: 13.5px; }
+  .q-open { color: var(--open); font-weight: 600; }
+  .q-done { color: var(--good); font-weight: 600; }
+  pre { background: var(--surface-2); border-radius: 8px; padding: 10px; font-size: 12px; overflow: auto; margin: 0; white-space: pre-wrap; }
+
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 980px) { .two { grid-template-columns: 1fr; } }
+  svg.chart { width: 100%; height: auto; display: block; }
+  svg.chart text { fill: var(--ink-2); font-size: 12px; }
+  svg.chart .val { fill: var(--ink); font-weight: 600; }
+  svg.chart .grid { stroke: var(--grid); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; font-size: 12.5px; position: sticky; top: 0; background: var(--surface); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .scroll { max-height: 420px; overflow: auto; }
+  details > summary { cursor: pointer; color: var(--ink-2); font-size: 13.5px; margin-top: 12px; }
+
+  #tip { position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--ring); border-radius: 8px; padding: 7px 10px; font-size: 12.5px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    max-width: 280px; opacity: 0; transition: opacity .1s; }
+  #tip b { display: block; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>운영체제 학습 지식 그래프</h1>
+      <p class="sub" id="subtitle"></p>
+    </div>
+    <button class="btn" id="themeBtn" type="button">테마 전환</button>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="요약 지표"></section>
+
+  <section class="filters" aria-label="필터">
+    <div id="areaChips" class="filters" role="group" aria-label="영역"></div>
+    <div class="search">
+      <input id="search" list="conceptNames" placeholder="개념 검색 (예: 페이지 폴트)" autocomplete="off" aria-label="개념 검색">
+      <datalist id="conceptNames"></datalist>
+    </div>
+  </section>
+
+  <section class="map">
+    <div class="card">
+      <h2>개념 지도</h2>
+      <p class="note">점은 개념, 선은 선수 관계다. 같은 영역끼리 모여 있고, 점이 클수록 연결이 많다. 끌어서 이동하고 휠로 확대한다. 점을 누르면 학습 경로가 강조된다.</p>
+      <svg id="network" viewBox="0 0 900 660" role="img" aria-label="249개 개념과 416개 선수 관계의 네트워크"></svg>
+      <div class="map-foot">
+        <div class="legend" id="areaLegend"></div>
+        <button class="btn" id="resetBtn" type="button">선택 해제</button>
+      </div>
+      <details>
+        <summary>개념 표로 보기</summary>
+        <div class="scroll"><table id="conceptTable"></table></div>
+      </details>
+    </div>
+    <aside class="card detail" id="detail" aria-live="polite"></aside>
+  </section>
+
+  <section class="two">
+    <div class="card">
+      <h2>단원별 개념 구성</h2>
+      <p class="note">단원마다 개념을 난이도(레벨 1 기초 · 2 중급 · 3 심화)로 나눴다.</p>
+      <svg class="chart" id="levelChart" role="img" aria-label="단원별 레벨별 개념 수 누적 막대"></svg>
+      <div class="legend" id="levelLegend" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h2>단원 간 선수 관계</h2>
+      <p class="note">행 단원의 개념이 열 단원 개념의 선수 지식인 관계 수. 대각선은 단원 안의 관계다.</p>
+      <svg class="chart" id="heatmap" role="img" aria-label="13개 단원 간 선수 관계 수 히트맵"></svg>
+      <div class="legend" id="heatLegend" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>아직 답을 못 찾은 질문 <span id="openCount" class="tag"></span></h2>
+    <p class="note">다음 복습 세션에서 풀 목록. 위 영역 필터가 적용된다.</p>
+    <div class="scroll"><table id="openTable"></table></div>
+  </section>
+
+  <section class="two">
+    <div class="card">
+      <h2>헷갈리기 쉬운 개념 쌍 <span id="confCount" class="tag"></span></h2>
+      <div class="scroll"><table id="confTable"></table></div>
+    </div>
+    <div class="card">
+      <h2>단원 목록</h2>
+      <div class="scroll"><table id="unitTable"></table></div>
+    </div>
+  </section>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script src="data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+(() => {
+  const G = window.OS_GRAPH;
+  const T = G.totals;
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const areaColor = a => `var(--area-${a})`;
+  const unitBy = Object.fromEntries(G.topics.map(t => [t.order, t]));
+  const areaBy = Object.fromEntries(G.areas.map(a => [a.id, a]));
+  const conceptBy = Object.fromEntries(G.concepts.map(c => [c.slug, c]));
+  const areaOfConcept = c => unitBy[c.unit].area;
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+
+  // ---------- index ----------
+  const parents = {}, children = {};
+  for (const c of G.concepts) { parents[c.slug] = []; children[c.slug] = []; }
+  for (const [a, b] of G.prerequisites) { children[a].push(b); parents[b].push(a); }
+  const degree = s => parents[s].length + children[s].length;
+  const confusedOf = {};
+  for (const p of G.confused) { (confusedOf[p.a] ??= []).push({ other: p.b, note: p.note }); (confusedOf[p.b] ??= []).push({ other: p.a, note: p.note }); }
+  const sourcesOf = {}; for (const s of G.sources) for (const c of s.describes) (sourcesOf[c] ??= []).push(s);
+  const visualsOf = {}; for (const v of G.visuals) for (const c of v.depicts) (visualsOf[c] ??= []).push(v);
+  const questionsOf = {}; for (const q of G.questions) for (const c of q.about) (questionsOf[c] ??= []).push(q);
+  const examplesOf = {}; for (const e of G.examples) (examplesOf[e.concept] ??= []).push(e);
+
+  function ancestors(slug) {
+    const seen = new Set(), stack = [slug];
+    while (stack.length) for (const p of parents[stack.pop()]) if (!seen.has(p)) { seen.add(p); stack.push(p); }
+    return seen;
+  }
+  function longestPathTo(slug) {           // DAG longest chain ending at slug
+    const memo = {};
+    const best = s => {
+      if (memo[s]) return memo[s];
+      memo[s] = [s];
+      for (const p of parents[s]) { const c = best(p); if (c.length + 1 > memo[s].length) memo[s] = [...c, s]; }
+      return memo[s];
+    };
+    return best(slug);
+  }
+
+  // ---------- state ----------
+  const state = { area: 0, selected: null };
+
+  // ---------- header & KPIs ----------
+  document.getElementById('subtitle').textContent =
+    `relate 그래프 DB에 적재한 13개 단원의 학습 기록 · 데이터 기준일 ${G.generatedAt}`;
+  const kpis = [
+    ['단원', T.units, `블로그 글 ${T.units}편`],
+    ['개념', T.concepts, `예제 ${T.examples}개`],
+    ['선수 관계', T.prerequisites, `단원 간 ${T.crossUnitPrerequisites}개`],
+    ['참고 자료', T.sources, `개념 연결 ${T.describes}개`],
+    ['시각화', T.visuals, `개념 묘사 ${T.depicts}개`],
+    ['미해결 질문', T.openQuestions, `전체 질문 ${T.questions}개 중`],
+  ];
+  document.getElementById('kpis').innerHTML = kpis.map(([l, v, h]) =>
+    `<div class="card kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="hint">${h}</div></div>`).join('');
+
+  // ---------- filters ----------
+  const chipBox = document.getElementById('areaChips');
+  const chipData = [{ id: 0, name: '전체' }, ...G.areas];
+  chipBox.innerHTML = chipData.map(a =>
+    `<button class="chip" type="button" data-area="${a.id}" aria-pressed="${a.id === 0}">${a.id ? `<span class="dot" style="background:${areaColor(a.id)}"></span>` : ''}${esc(a.name)}${a.id ? ` <span style="color:var(--muted)">${a.units.join('·')}</span>` : ''}</button>`).join('');
+  chipBox.addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    state.area = +b.dataset.area;
+    state.selected = null;
+    search.value = '';
+    chipBox.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === b));
+    refresh();
+  });
+  document.getElementById('conceptNames').innerHTML = G.concepts.map(c => `<option value="${esc(c.name)}">${c.unit}단원 · ${esc(c.slug)}</option>`).join('');
+  const search = document.getElementById('search');
+  search.addEventListener('change', () => {
+    const q = search.value.trim();
+    const hit = G.concepts.find(c => c.name === q || c.slug === q) || G.concepts.find(c => c.name.includes(q));
+    if (hit) select(hit.slug);
+  });
+  document.getElementById('areaLegend').innerHTML = G.areas.map(a =>
+    `<span><span class="dot" style="background:${areaColor(a.id)}"></span>${esc(a.name)} (${a.units.join('·')}단원)</span>`).join('');
+  document.getElementById('resetBtn').onclick = () => select(null);
+  document.getElementById('themeBtn').onclick = () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+  };
+
+  // ---------- tooltip ----------
+  const tip = document.getElementById('tip');
+  const showTip = (html, ev) => { tip.innerHTML = html; tip.style.opacity = 1; moveTip(ev); };
+  const moveTip = ev => {
+    const pad = 14, r = tip.getBoundingClientRect();
+    let x = ev.clientX + pad, y = ev.clientY + pad;
+    if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - pad;
+    if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - pad;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  };
+  const hideTip = () => { tip.style.opacity = 0; };
+
+  // ---------- network ----------
+  const W = 900, H = 660;
+  const centers = { 1: [140, 180], 2: [430, 175], 3: [715, 185], 4: [150, 495], 5: [440, 500], 6: [725, 505] };
+  const nodes = G.concepts.map(c => ({ ...c, area: areaOfConcept(c), r: 4 + Math.sqrt(degree(c.slug)) * 1.9 }));
+  const nodeBy = Object.fromEntries(nodes.map(n => [n.slug, n]));
+  const links = G.prerequisites.map(([a, b]) => ({ source: a, target: b, cross: nodeBy[a].area !== nodeBy[b].area }));
+  nodes.forEach((n, i) => { const [cx, cy] = centers[n.area]; n.x = cx + Math.cos(i) * 40; n.y = cy + Math.sin(i) * 40; });
+
+  const sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.slug).distance(d => d.cross ? 120 : 34).strength(d => d.cross ? 0.02 : 0.25))
+    .force('charge', d3.forceManyBody().strength(-34))
+    .force('x', d3.forceX(d => centers[d.area][0]).strength(0.2))
+    .force('y', d3.forceY(d => centers[d.area][1]).strength(0.22))
+    .force('collide', d3.forceCollide(d => d.r + 2.5))
+    .stop();
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  for (let i = 0; i < 400; i++) {
+    sim.tick();
+    for (const n of nodes) { n.x = clamp(n.x, n.r + 6, W - n.r - 60); n.y = clamp(n.y, n.r + 40, H - n.r - 6); }
+  }
+  const areaBox = {};
+  for (const n of nodes) {
+    const b = areaBox[n.area] ??= { x0: Infinity, x1: -Infinity, y0: Infinity };
+    b.x0 = Math.min(b.x0, n.x); b.x1 = Math.max(b.x1, n.x); b.y0 = Math.min(b.y0, n.y - n.r);
+  }
+
+  const svg = d3.select('#network');
+  const zoomLayer = svg.append('g');
+  svg.call(d3.zoom().scaleExtent([0.5, 5]).on('zoom', ev => zoomLayer.attr('transform', ev.transform)));
+  zoomLayer.append('g').selectAll('text').data(G.areas).join('text')
+    .attr('class', 'area-label').attr('text-anchor', 'middle')
+    .attr('x', a => (areaBox[a.id].x0 + areaBox[a.id].x1) / 2).attr('y', a => Math.max(16, areaBox[a.id].y0 - 12))
+    .text(a => `${a.name} · ${a.units.join('·')}단원`);
+  const linkSel = zoomLayer.append('g').selectAll('line').data(links).join('line').attr('class', 'link')
+    .attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+  const nodeSel = zoomLayer.append('g').selectAll('g').data(nodes).join('g').attr('class', 'node')
+    .attr('transform', d => `translate(${d.x},${d.y})`)
+    .attr('tabindex', 0).attr('role', 'button').attr('aria-label', d => `${d.name}, ${d.unit}단원`);
+  nodeSel.append('circle').attr('r', d => d.r).attr('fill', d => areaColor(d.area));
+  const hubs = new Set([...nodes].sort((a, b) => degree(b.slug) - degree(a.slug)).slice(0, 16).map(n => n.slug));
+  const labelSel = nodeSel.append('text').attr('x', d => d.r + 3).attr('y', 4).text(d => d.name);
+  nodeSel
+    .on('mouseenter', (ev, d) => showTip(`<b>${esc(d.name)}</b>${d.unit}단원 ${esc(unitBy[d.unit].name)} · 레벨 ${d.level}<br>선수 ${parents[d.slug].length} · 다음 ${children[d.slug].length}`, ev))
+    .on('mousemove', moveTip).on('mouseleave', hideTip)
+    .on('click', (ev, d) => { ev.stopPropagation(); select(d.slug); })
+    .on('keydown', (ev, d) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(d.slug); } });
+  svg.on('click', () => select(null));
+
+  function refresh() {
+    const sel = state.selected;
+    const anc = sel ? ancestors(sel) : null;
+    const kids = sel ? new Set(children[sel]) : null;
+    const inArea = d => state.area === 0 || d.area === state.area;
+    const lit = d => sel ? (d.slug === sel || anc.has(d.slug) || kids.has(d.slug)) : inArea(d);
+    nodeSel.classed('dim', d => !lit(d)).classed('sel', d => d.slug === sel);
+    labelSel.style('display', d => {
+      if (sel) return (d.slug === sel || parents[sel].includes(d.slug) || kids.has(d.slug)) ? null : 'none';
+      return hubs.has(d.slug) && inArea(d) ? null : 'none';
+    });
+    linkSel.classed('hi', d => sel && ((anc.has(d.source.slug) || d.source.slug === sel) && (anc.has(d.target.slug) || d.target.slug === sel) || d.source.slug === sel))
+      .classed('dim', d => sel ? !((anc.has(d.source.slug) || d.source.slug === sel) && (anc.has(d.target.slug) || d.target.slug === sel) || d.source.slug === sel)
+                               : !(inArea(d.source) && inArea(d.target)));
+    renderDetail();
+    renderOpen();
+    renderConfused();
+    renderLevelChart();
+  }
+
+  function select(slug) {
+    state.selected = slug;
+    if (slug) search.value = conceptBy[slug].name;
+    refresh();
+  }
+
+  // ---------- detail ----------
+  const detail = document.getElementById('detail');
+  const cbtn = s => { const c = conceptBy[s]; return c ? `<button class="clink" type="button" data-slug="${s}"><span class="dot" style="background:${areaColor(areaOfConcept(c))}"></span>${esc(c.name)}</button>` : ''; };
+  detail.addEventListener('click', e => { const b = e.target.closest('[data-slug]'); if (b) select(b.dataset.slug); });
+
+  function renderDetail() {
+    const s = state.selected;
+    if (!s) {
+      const top = [...G.concepts].sort((a, b) => degree(b.slug) - degree(a.slug)).slice(0, 12);
+      detail.innerHTML = `<h2>개념 살펴보기</h2>
+        <p class="note">지도에서 점을 누르거나 위에서 검색하면 이 자리에 개념 카드가 열린다.</p>
+        <h4>연결이 가장 많은 개념</h4><div class="linklist">${top.map(c => cbtn(c.slug)).join('')}</div>
+        <h4>단원별 글</h4><ul>${G.topics.map(t => `<li>${t.order}. <a href="${t.post.path}">${esc(t.name)}</a></li>`).join('')}</ul>`;
+      return;
+    }
+    const c = conceptBy[s], u = unitBy[c.unit], anc = ancestors(s), path = longestPathTo(s);
+    const conf = confusedOf[s] || [], srcs = sourcesOf[s] || [], vis = visualsOf[s] || [], qs = questionsOf[s] || [], exs = examplesOf[s] || [];
+    detail.innerHTML = `
+      <div class="tags"><span class="tag"><span class="dot" style="display:inline-block;background:${areaColor(u.area)};margin-right:5px"></span>${esc(areaBy[u.area].name)}</span>
+        <span class="tag">${u.order}단원 · ${esc(u.name)}</span><span class="tag">레벨 ${c.level}</span><span class="tag mono">${esc(c.slug)}</span></div>
+      <h3>${esc(c.name)}</h3>
+      <p>${esc(c.summary)}</p>
+      ${path.length > 1 ? `<h4>가장 긴 학습 경로 (${path.length - 1}단계, 선행 개념 전체 ${anc.size}개)</h4>
+        <div class="path">${path.map((p, i) => (i ? '<span class="arrow">→</span>' : '') + cbtn(p)).join('')}</div>` : ''}
+      <h4>먼저 알아야 할 개념 (${parents[s].length})</h4><div class="linklist">${parents[s].map(cbtn).join('') || '<span class="note">없음 · 출발점 개념</span>'}</div>
+      <h4>다음으로 이어지는 개념 (${children[s].length})</h4><div class="linklist">${children[s].map(cbtn).join('') || '<span class="note">없음</span>'}</div>
+      ${conf.length ? `<h4>헷갈리기 쉬운 개념</h4><ul>${conf.map(x => `<li>${cbtn(x.other)} ${esc(x.note)}</li>`).join('')}</ul>` : ''}
+      ${vis.length ? `<h4>시각화 자료 (${vis.length})</h4><div class="thumbs">${vis.map(v => `<a href="${v.path}" target="_blank" title="${esc(v.caption)}"><img src="${v.path}" alt="${esc(v.caption)}" loading="lazy"></a>`).join('')}</div>` : ''}
+      ${qs.length ? `<h4>질문 (${qs.length})</h4><ul>${qs.map(q => `<li><span class="${q.answered ? 'q-done' : 'q-open'}">${q.answered ? '✓ 해결' : '● 미해결'}</span> ${esc(q.text)}${q.answered ? `<br><span class="note">${esc(q.answer)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+      ${exs.length ? `<h4>예제 (${exs.length})</h4>${exs.map(e => `<p class="note">${e.kind === 'code' ? '코드' : '비유'}</p><pre>${esc(e.body)}</pre>`).join('<div style="height:8px"></div>')}` : ''}
+      ${srcs.length ? `<h4>참고 자료 (${srcs.length})</h4><ul>${srcs.map(x => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a> <span class="note">${x.kind}</span></li>`).join('')}</ul>` : ''}
+      <h4>블로그 글</h4><p><a href="${u.post.path}">${esc(u.post.title)}</a></p>`;
+    detail.scrollTop = 0;
+  }
+
+  // ---------- level chart ----------
+  function renderLevelChart() {
+    const rowH = 30, left = 150, right = 40, top = 6, w = 560, barW = w - left - right;
+    const max = d3.max(G.topics, t => t.concepts);
+    const x = d3.scaleLinear().domain([0, max]).range([0, barW]);
+    const h = top + G.topics.length * rowH + 22;
+    const svg = d3.select('#levelChart').attr('viewBox', `0 0 ${w} ${h}`);
+    svg.selectAll('*').remove();
+    [0, 5, 10, 15, 20].forEach(v => {
+      svg.append('line').attr('class', 'grid').attr('x1', left + x(v)).attr('x2', left + x(v)).attr('y1', top).attr('y2', h - 18);
+      svg.append('text').attr('x', left + x(v)).attr('y', h - 4).attr('text-anchor', 'middle').text(v);
+    });
+    G.topics.forEach((t, i) => {
+      const y = top + i * rowH + 6, bh = rowH - 12;
+      const faded = state.area && t.area !== state.area;
+      const g = svg.append('g').style('opacity', faded ? 0.3 : 1)
+        .on('mouseenter', ev => showTip(`<b>${t.order}. ${esc(t.name)}</b>레벨 1 · ${t.levels[0]}개<br>레벨 2 · ${t.levels[1]}개<br>레벨 3 · ${t.levels[2]}개`, ev))
+        .on('mousemove', moveTip).on('mouseleave', hideTip);
+      g.append('text').attr('x', left - 10).attr('y', y + bh / 2 + 4).attr('text-anchor', 'end').text(`${t.order}. ${t.name}`);
+      let acc = 0;
+      t.levels.forEach((n, li) => {
+        if (!n) return;
+        const x0 = left + x(acc), wseg = x(n) - 2;
+        const last = t.levels.slice(li + 1).every(v => v === 0);
+        const r = last ? 4 : 0;
+        g.append('path').attr('fill', `var(--lv-${li + 1})`)
+          .attr('d', `M${x0},${y}h${wseg - r}${r ? `a${r},${r} 0 0 1 ${r},${r}v${bh - 2 * r}a${r},${r} 0 0 1 -${r},${r}` : `v${bh}`}h-${wseg - r}z`);
+        acc += n;
+      });
+      g.append('rect').attr('x', left).attr('y', y - 4).attr('width', barW).attr('height', bh + 8).attr('fill', 'transparent');
+      g.append('text').attr('class', 'val').attr('x', left + x(t.concepts) + 6).attr('y', y + bh / 2 + 4).text(t.concepts);
+    });
+  }
+  document.getElementById('levelLegend').innerHTML = ['기초', '중급', '심화'].map((n, i) =>
+    `<span><span class="dot" style="border-radius:3px;background:var(--lv-${i + 1})"></span>레벨 ${i + 1} ${n}</span>`).join('');
+
+  // ---------- heatmap ----------
+  (function renderHeatmap() {
+    const n = G.topics.length, cell = 30, left = 150, top = 26, w = left + n * cell + 4, h = top + n * cell + 4;
+    const m = Array.from({ length: n }, () => Array(n).fill(0));
+    for (const [a, b] of G.prerequisites) m[conceptBy[a].unit - 1][conceptBy[b].unit - 1]++;
+    const off = m.flatMap((r, i) => r.filter((_, j) => j !== i));
+    const maxOff = d3.max(off);
+    const steps = ['--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5', '--seq-6'];
+    const q = d3.scaleQuantize().domain([1, maxOff]).range(steps);
+    const svg = d3.select('#heatmap').attr('viewBox', `0 0 ${w} ${h}`);
+    G.topics.forEach((t, i) => {
+      svg.append('text').attr('x', left - 8).attr('y', top + i * cell + cell / 2 + 4).attr('text-anchor', 'end').text(`${t.order}. ${t.name}`);
+      svg.append('text').attr('x', left + i * cell + cell / 2).attr('y', top - 8).attr('text-anchor', 'middle').text(t.order);
+    });
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const v = m[i][j], diag = i === j, x = left + j * cell, y = top + i * cell;
+      const step = diag || !v ? null : q(v);
+      const g = svg.append('g')
+        .on('mouseenter', ev => showTip(`<b>${i + 1}단원 → ${j + 1}단원</b>${esc(G.topics[i].name)} → ${esc(G.topics[j].name)}<br>선수 관계 ${v}개${diag ? ' (단원 안)' : ''}`, ev))
+        .on('mousemove', moveTip).on('mouseleave', hideTip);
+      g.append('rect').attr('x', x + 1).attr('y', y + 1).attr('width', cell - 2).attr('height', cell - 2).attr('rx', 4)
+        .attr('fill', step ? `var(${step})` : 'var(--surface-2)')
+        .attr('stroke', diag ? 'var(--axis)' : 'none');
+      if (v) g.append('text').attr('x', x + cell / 2).attr('y', y + cell / 2 + 4).attr('text-anchor', 'middle')
+        .style('font-size', '11px').style('fill', diag ? 'var(--muted)' : (steps.indexOf(step) >= 3 ? '#ffffff' : 'var(--ink)'))
+        .text(v);
+    }
+    const ranges = steps.map(s => q.invertExtent(s).map(Math.round));
+    document.getElementById('heatLegend').innerHTML =
+      `<span><span class="dot" style="border-radius:3px;background:var(--surface-2);outline:1px solid var(--axis)"></span>단원 안</span>` +
+      steps.map((s, i) => `<span><span class="dot" style="border-radius:3px;background:var(${s})"></span>${ranges[i][0]}${ranges[i][1] > ranges[i][0] ? '–' + ranges[i][1] : ''}</span>`).join('');
+  })();
+
+  // ---------- tables ----------
+  const unitCell = u => `<span class="dot" style="display:inline-block;background:${areaColor(unitBy[u].area)};margin-right:6px"></span>${u}. ${esc(unitBy[u].name)}`;
+  function renderOpen() {
+    const rows = G.questions.filter(q => !q.answered && (!state.area || unitBy[q.unit].area === state.area));
+    document.getElementById('openCount').textContent = `${rows.length}개`;
+    document.getElementById('openTable').innerHTML = `<thead><tr><th style="width:180px">단원</th><th>질문</th><th style="width:260px">관련 개념</th></tr></thead><tbody>` +
+      rows.map(q => `<tr><td>${unitCell(q.unit)}</td><td>${esc(q.text)}</td><td><div class="linklist">${q.about.map(cbtn).join('')}</div></td></tr>`).join('') + '</tbody>';
+  }
+  function renderConfused() {
+    const rows = G.confused.filter(p => !state.area || [p.a, p.b].some(s => areaOfConcept(conceptBy[s]) === state.area));
+    document.getElementById('confCount').textContent = `${rows.length}쌍`;
+    document.getElementById('confTable').innerHTML = `<thead><tr><th style="width:110px">개념 A</th><th style="width:110px">개념 B</th><th>왜 헷갈리나</th></tr></thead><tbody>` +
+      rows.map(p => `<tr><td>${cbtn(p.a)}</td><td>${cbtn(p.b)}</td><td>${esc(p.note)}</td></tr>`).join('') + '</tbody>';
+  }
+  document.getElementById('unitTable').innerHTML = `<thead><tr><th>단원</th><th class="num">개념</th><th class="num">시각화</th><th class="num">자료</th><th class="num">미해결</th></tr></thead><tbody>` +
+    G.topics.map(t => `<tr><td>${unitCell(t.order)}<br><a href="${t.post.path}" style="font-size:12.5px">${esc(t.post.title)}</a></td><td class="num">${t.concepts}</td><td class="num">${t.visuals}</td><td class="num">${t.sources}</td><td class="num">${t.open}</td></tr>`).join('') + '</tbody>';
+  document.getElementById('conceptTable').innerHTML = `<thead><tr><th>개념</th><th>단원</th><th class="num">레벨</th><th class="num">선수</th><th class="num">다음</th></tr></thead><tbody>` +
+    G.concepts.map(c => `<tr><td>${cbtn(c.slug)}</td><td>${unitCell(c.unit)}</td><td class="num">${c.level}</td><td class="num">${parents[c.slug].length}</td><td class="num">${children[c.slug].length}</td></tr>`).join('') + '</tbody>';
+  document.querySelectorAll('#openTable, #confTable, #conceptTable').forEach(t => t.addEventListener('click', e => {
+    const b = e.target.closest('[data-slug]'); if (b) { select(b.dataset.slug); document.querySelector('.map').scrollIntoView({ behavior: 'smooth' }); }
+  }));
+
+  refresh();
+})();
+</script>
+</body>
+</html>

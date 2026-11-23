@@ -78,7 +78,7 @@
 3. 시각화 자료: 개념을 그림으로 만든다(HTML/SVG → PNG). `Visual`로 저장하고 `DEPICTS`와 `DERIVED_FROM`으로 잇는다.
 4. 설명 글: 시각화를 먼저 보여 주고 설명하는 블로그 글을 쓴다. `Post`로 저장하고 `EXPLAINS`, `EMBEDS`, `CITES`로 잇는다.
 5. 개념 정리: 새로 배운 `Concept`, 선수 관계, 헷갈린 개념 쌍, `Question`, `Example`을 기록한다.
-6. 세션 마무리: `Session.summary`를 채우고 `COVERED`, `PRODUCED`를 연결한 다음 커밋하고 푸시한다.
+6. 세션 마무리: `Session.summary`를 채우고 `COVERED`, `PRODUCED`를 연결한다. `graph-data/<NN>-<topic>.json`을 갱신하고 `scripts/build_dashboard_data.py`로 대시보드 데이터를 다시 만든 다음 커밋하고 푸시한다.
 
 ## 단원 병렬 진행 (서브에이전트)
 
@@ -104,6 +104,7 @@
 | 단원별 그래프 데이터 | `relate-os-graph/graph-data/<NN>-<topic>.json` |
 | 그래프 데이터 검증·적재 | `relate-os-graph/scripts/validate_topic.py`, `relate-os-graph/scripts/load-topic.cypher` |
 | 시각화 렌더링 (HTML → PNG) | `relate-os-graph/scripts/render.ps1` |
+| 대시보드 (데이터 재생성: `scripts/build_dashboard_data.py`) | `relate-os-graph/docs/dashboard/` (미리보기: `.claude/launch.json`의 `dashboard`) |
 | 자주 쓰는 조회 쿼리 | `relate-os-graph/scripts/queries.cypher` |
 | 아키텍처·설계 문서 | `relate-os-graph/docs/` |
 | 스키마 | `relate-os-graph/schema/init.cypher` |
